@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import SearchScreen from './src/screens/SearchScreen';
 import SavedWordsScreen from './src/screens/SavedWordsScreen';
+import GameScreen from './src/screens/GameScreen'; // AÑADIR ESTA LÍNEA
 
 const Tab = createBottomTabNavigator();
 
@@ -27,7 +28,6 @@ function AppNavigator() {
         tabBarStyle: [
           styles.tabBar,
           {
-            // Agregar padding bottom basado en las áreas seguras
             paddingBottom: Math.max(insets.bottom, 5),
             height: 60 + Math.max(insets.bottom, 0),
           }
@@ -52,10 +52,20 @@ function AppNavigator() {
           tabBarIcon: ({ color }) => <TabIcon emoji="📚" color={color} />,
         }}
       />
+      {/* AÑADIR ESTA NUEVA TAB */}
+      <Tab.Screen
+        name="Game"
+        component={GameScreen}
+        options={{
+          tabBarLabel: 'Juego',
+          tabBarIcon: ({ color }) => <TabIcon emoji="🎮" color={color} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
+// El resto del código permanece igual...
 export default function App() {
   return (
     <SafeAreaProvider>

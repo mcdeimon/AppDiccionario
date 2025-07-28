@@ -176,6 +176,17 @@ export default function SavedWordsScreen() {
         />
       )}
 
+      {/* AÑADIR AQUÍ EL BOTÓN DEL JUEGO */}
+      {savedWords.length >= 2 && (
+        <TouchableOpacity 
+          style={styles.gameButton} 
+          onPress={() => navigation.navigate('Game')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.gameButtonText}>🎮 Jugar Quiz de Definiciones</Text>
+        </TouchableOpacity>
+      )}
+
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -370,4 +381,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#7f8c8d',
   },
+  gameButton: {
+  backgroundColor: '#9b59b6',
+  marginHorizontal: 20,
+  marginBottom: 10,
+  padding: 15,
+  borderRadius: 10,
+  alignItems: 'center',
+  elevation: 2,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+},
+gameButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
 });
