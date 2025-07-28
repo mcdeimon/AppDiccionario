@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -11,12 +11,38 @@ import {
   KeyboardAvoidingView,
   Platform 
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchWord } from '../services/dictionaryService';
+import { addWordToList, initializeStorage } from '../services/storageService';
 
 export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [wordData, setWordData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Obtener las áreas seguras
+  const insets = useSafeAreaInsets();
+  
+  // Calcular el padding inferior para evitar que se oculte con la barra de navegación
+  const bottomPadding = Math.max(insets.bottom, 20) + 80;
+
+  // Inicializar el almacenamiento cuando se monta el componente
+  useEffect(() => {
+    initializeStorage();
+  }, []);
+
+  // Limpiar búsqueda cuando la pantalla obtiene el foco
+  useFocusEffect(
+    useCallback(() => {
+      // Limpiar los datos de la palabra anterior
+      setWordData(null);
+      setSearchTerm('');
+      setLoading(false);
+      setSaving(false);
+    }, [])
+  );
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -43,12 +69,32 @@ export default function SearchScreen() {
     setLoading(false);
   };
 
-  const saveWord = () => {
+  const saveWord = async () => {
     if (!wordData) {
       Alert.alert('Error', 'Primero busca una palabra');
       return;
     }
-    Alert.alert('Guardado', `La palabra "${wordData.word}" se ha guardado en tu lista`);
+
+    setSaving(true);
+    
+    try {
+      const result = await addWordToList('default', wordData);
+      
+      if (result.success) {
+        Alert.alert(
+          'Éxito', 
+          result.message,
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        Alert.alert('Aviso', result.message);
+      }
+    } catch (error) {
+      console.error('Error guardando palabra:', error);
+      Alert.alert('Error', 'No se pudo guardar la palabra');
+    }
+    
+    setSaving(false);
   };
 
   const renderDefinitions = () => {
@@ -80,7 +126,13 @@ export default function SearchScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: bottomPadding,
+        }}
+      >
         <Text style={styles.title}>Diccionario Español</Text>
         <Text style={styles.subtitle}>Tu compañero de aprendizaje</Text>
         
@@ -114,6 +166,15 @@ export default function SearchScreen() {
         {wordData && (
           <View style={styles.resultContainer}>
             <Text style={styles.wordTitle}>{wordData.word}</Text>
+
+            {/* Nueva sección para mostrar el idioma */}
+            {wordData.language && !wordData.isSpanish && (
+            <View style={styles.languageContainer}>
+                <Text style={styles.languageText}>
+                🌍 Idioma: {wordData.language}
+                </Text>
+            </View>
+            )}
             
             {wordData.etymology && (
               <Text style={styles.etymology}>
@@ -127,11 +188,21 @@ export default function SearchScreen() {
             </View>
             
             <TouchableOpacity 
-              style={styles.saveButton} 
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
               onPress={saveWord}
+              disabled={saving}
               activeOpacity={0.8}
             >
-              <Text style={styles.saveButtonText}>💾 Guardar palabra</Text>
+              {saving ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="white" size="small" />
+                  <Text style={[styles.saveButtonText, { marginLeft: 10 }]}>
+                    Guardando...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.saveButtonText}>💾 Guardar palabra</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -140,6 +211,7 @@ export default function SearchScreen() {
   );
 }
 
+// Los estilos permanecen exactamente iguales
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -278,6 +350,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  saveButtonDisabled: {
+    backgroundColor: '#95a5a6',
+  },
   categoryText: {
     fontSize: 12,
     fontStyle: 'italic',
@@ -294,4 +369,18 @@ const styles = StyleSheet.create({
     color: '#27ae60',
     marginTop: 2,
   },
+  languageContainer: {
+  backgroundColor: '#e8f4fd',
+  borderRadius: 8,
+  padding: 10,
+  marginBottom: 10,
+  borderLeftWidth: 4,
+  borderLeftColor: '#3498db',
+},
+languageText: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#2980b9',
+  textAlign: 'center',
+},
 });

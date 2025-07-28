@@ -12,14 +12,22 @@ export const searchWord = async (word) => {
 
     const cleanWord = word.trim().toLowerCase();
     
-    const prompt = `Define la palabra "${cleanWord}" en español como un diccionario educativo. 
+   const prompt = `Define la palabra "${cleanWord}" como un diccionario educativo. 
+
+IMPORTANTE: 
+- Primero identifica el idioma de la palabra
+- Si la palabra NO es española, indícalo claramente en la respuesta
+- Si es una palabra extranjera (inglés, griego, latín, etc.), proporciona su definición y significado en español
+- Si es una palabra española, procede normalmente
 
 Responde ÚNICAMENTE en este formato JSON válido (sin markdown ni texto adicional):
 {
   "word": "${cleanWord}",
+  "language": "idioma detectado (español, inglés, griego, latín, etc.)",
+  "isSpanish": true/false,
   "definitions": [
     {
-      "definition": "explicación clara de la palabra",
+      "definition": "explicación clara de la palabra en español",
       "category": "sustantivo/verbo/adjetivo/etc",
       "usage": null,
       "synonyms": ["sinónimo1", "sinónimo2"],
@@ -75,6 +83,8 @@ Responde ÚNICAMENTE en este formato JSON válido (sin markdown ni texto adicion
     
     return {
       word: parsedData.word,
+      language: parsedData.language,
+      isSpanish: parsedData.isSpanish,
       definitions: parsedData.definitions,
       etymology: parsedData.etymology,
       source: parsedData.source,
