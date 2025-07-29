@@ -9,7 +9,8 @@ import {
   ScrollView, 
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  Keyboard // <-- AÑADE ESTA LÍNEA
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,21 +23,16 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Obtener las áreas seguras
   const insets = useSafeAreaInsets();
   
-  // Calcular el padding inferior para evitar que se oculte con la barra de navegación
   const bottomPadding = Math.max(insets.bottom, 20) + 80;
 
-  // Inicializar el almacenamiento cuando se monta el componente
   useEffect(() => {
     initializeStorage();
   }, []);
 
-  // Limpiar búsqueda cuando la pantalla obtiene el foco
   useFocusEffect(
     useCallback(() => {
-      // Limpiar los datos de la palabra anterior
       setWordData(null);
       setSearchTerm('');
       setLoading(false);
@@ -45,6 +41,7 @@ export default function SearchScreen() {
   );
 
   const handleSearch = async () => {
+    Keyboard.dismiss(); // <-- AÑADE ESTA LÍNEA
     if (!searchTerm.trim()) {
       Alert.alert('Error', 'Por favor escribe una palabra');
       return;
@@ -129,6 +126,7 @@ export default function SearchScreen() {
       <ScrollView 
         style={styles.scrollContainer} 
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled" 
         contentContainerStyle={{
           paddingBottom: bottomPadding,
         }}
@@ -167,7 +165,6 @@ export default function SearchScreen() {
           <View style={styles.resultContainer}>
             <Text style={styles.wordTitle}>{wordData.word}</Text>
 
-            {/* Nueva sección para mostrar el idioma */}
             {wordData.language && !wordData.isSpanish && (
             <View style={styles.languageContainer}>
                 <Text style={styles.languageText}>
@@ -211,7 +208,7 @@ export default function SearchScreen() {
   );
 }
 
-// Los estilos permanecen exactamente iguales
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,

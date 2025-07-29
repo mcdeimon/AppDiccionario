@@ -78,8 +78,19 @@ Responde ÚNICAMENTE en este formato JSON válido (sin markdown ni texto adicion
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-    const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    const parsedData = JSON.parse(cleanContent);
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Búsqueda robusta del objeto JSON en la respuesta
+    const startIndex = content.indexOf('{');
+    const endIndex = content.lastIndexOf('}');
+
+    if (startIndex === -1 || endIndex === -1) {
+      throw new SyntaxError("No se encontró un objeto JSON válido en la respuesta.");
+    }
+
+    const jsonString = content.substring(startIndex, endIndex + 1);
+    const parsedData = JSON.parse(jsonString);
+    // --- FIN DE LA MODIFICACIÓN ---
     
     return {
       word: parsedData.word,

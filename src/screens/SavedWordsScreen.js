@@ -176,17 +176,6 @@ export default function SavedWordsScreen() {
         />
       )}
 
-      {/* AÑADIR AQUÍ EL BOTÓN DEL JUEGO */}
-      {savedWords.length >= 2 && (
-        <TouchableOpacity 
-          style={styles.gameButton} 
-          onPress={() => navigation.navigate('Game')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.gameButtonText}>🎮 Jugar Quiz de Definiciones</Text>
-        </TouchableOpacity>
-      )}
-
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
