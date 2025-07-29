@@ -10,18 +10,20 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Keyboard // <-- AÑADE ESTA LÍNEA
+  Keyboard 
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchWord } from '../services/dictionaryService';
 import { addWordToList, initializeStorage } from '../services/storageService';
+import ListSelectionModal from '../components/ListSelectionModal'; // AÑADIR ESTA LÍNEA
 
 export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [wordData, setWordData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showListModal, setShowListModal] = useState(false); // AÑADIR ESTA LÍNEA
   
   const insets = useSafeAreaInsets();
   
@@ -41,7 +43,7 @@ export default function SearchScreen() {
   );
 
   const handleSearch = async () => {
-    Keyboard.dismiss(); // <-- AÑADE ESTA LÍNEA
+    Keyboard.dismiss();
     if (!searchTerm.trim()) {
       Alert.alert('Error', 'Por favor escribe una palabra');
       return;
@@ -66,21 +68,27 @@ export default function SearchScreen() {
     setLoading(false);
   };
 
+  // REEMPLAZAR LA FUNCIÓN saveWord POR ESTA:
   const saveWord = async () => {
     if (!wordData) {
       Alert.alert('Error', 'Primero busca una palabra');
       return;
     }
 
+    setShowListModal(true);
+  };
+
+  // AÑADIR ESTA NUEVA FUNCIÓN:
+  const handleSaveToList = async (selectedList) => {
     setSaving(true);
     
     try {
-      const result = await addWordToList('default', wordData);
+      const result = await addWordToList(selectedList.id, wordData);
       
       if (result.success) {
         Alert.alert(
           'Éxito', 
-          result.message,
+          `Palabra guardada en "${selectedList.name}"`,
           [{ text: 'OK', style: 'default' }]
         );
       } else {
@@ -204,11 +212,19 @@ export default function SearchScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* AÑADIR ESTE MODAL */}
+      <ListSelectionModal
+        visible={showListModal}
+        onClose={() => setShowListModal(false)}
+        onSelectList={handleSaveToList}
+        wordData={wordData}
+      />
     </KeyboardAvoidingView>
   );
 }
 
-// Estilos
+// Los estilos permanecen igual...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -367,17 +383,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   languageContainer: {
-  backgroundColor: '#e8f4fd',
-  borderRadius: 8,
-  padding: 10,
-  marginBottom: 10,
-  borderLeftWidth: 4,
-  borderLeftColor: '#3498db',
-},
-languageText: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: '#2980b9',
-  textAlign: 'center',
-},
+    backgroundColor: '#e8f4fd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3498db',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2980b9',
+    textAlign: 'center',
+  },
 });

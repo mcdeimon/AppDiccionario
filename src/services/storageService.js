@@ -129,3 +129,71 @@ export const getDefaultList = async () => {
 export const initializeStorage = async () => {
   await initializeDefaultList();
 };
+
+// Nuevas funciones creacion de Listas
+
+// Crear nueva lista
+export const createWordList = async (listName) => {
+  try {
+    if (!listName || listName.trim() === '') {
+      return { success: false, message: 'El nombre de la lista no puede estar vacío' };
+    }
+
+    const lists = await getWordLists();
+    
+    // Verificar si ya existe una lista con ese nombre
+    const nameExists = lists.find(list => 
+      list.name.toLowerCase() === listName.trim().toLowerCase()
+    );
+    
+    if (nameExists) {
+      return { success: false, message: 'Ya existe una lista con ese nombre' };
+    }
+
+    const newList = {
+      id: Date.now().toString(),
+      name: listName.trim(),
+      words: [],
+      createdAt: new Date().toISOString()
+    };
+
+    lists.push(newList);
+    await AsyncStorage.setItem(STORAGE_KEYS.WORD_LISTS, JSON.stringify(lists));
+    
+    return { success: true, message: 'Lista creada exitosamente', list: newList };
+  } catch (error) {
+    console.error('Error creando lista:', error);
+    return { success: false, message: 'Error al crear la lista' };
+  }
+};
+
+// Eliminar lista
+export const deleteWordList = async (listId) => {
+  try {
+    if (listId === 'default') {
+      return { success: false, message: 'No puedes eliminar la lista principal' };
+    }
+
+    const lists = await getWordLists();
+    const filteredLists = lists.filter(list => list.id !== listId);
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.WORD_LISTS, JSON.stringify(filteredLists));
+    return { success: true, message: 'Lista eliminada exitosamente' };
+  } catch (error) {
+    console.error('Error eliminando lista:', error);
+    return { success: false, message: 'Error al eliminar la lista' };
+  }
+};
+
+// Obtener lista por ID
+export const getListById = async (listId) => {
+  try {
+    const lists = await getWordLists();
+    return lists.find(list => list.id === listId) || null;
+  } catch (error) {
+    console.error('Error obteniendo lista:', error);
+    return null;
+  }
+};
+
+// Fin Nuevas funciones creacion de Listas
