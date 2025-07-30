@@ -7,35 +7,33 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getDefaultList, removeWordFromList } from '../services/storageService';
+import { getWordLists, removeWordFromList, deleteWordList } from '../services/storageService';
 
 export default function SavedWordsScreen() {
-  const [savedWords, setSavedWords] = useState([]);
-  const [filteredWords, setFilteredWords] = useState([]);
+  const [allLists, setAllLists] = useState([]);
+  const [selectedList, setSelectedList] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchFilter, setSearchFilter] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadSavedWords = async () => {
+  const loadAllLists = async () => {
     try {
-      const defaultList = await getDefaultList();
-      if (defaultList && defaultList.words) {
-        // Ordenar por fecha de agregado (más recientes primero)
-        const sortedWords = defaultList.words.sort((a, b) => 
-          new Date(b.addedAt) - new Date(a.addedAt)
-        );
-        setSavedWords(sortedWords);
-        setFilteredWords(sortedWords);
-      } else {
-        setSavedWords([]);
-        setFilteredWords([]);
+      const lists = await getWordLists();
+      setAllLists(lists);
+      
+      // Si no hay lista seleccionada, seleccionar "General" por defecto
+      if (!selectedList && lists.length > 0) {
+        const defaultList = lists.find(list => list.id === 'default');
+        setSelectedList(defaultList || lists[0]);
+      } else if (selectedList) {
+        // Actualizar la lista seleccionada con datos frescos
+        const updatedSelectedList = lists.find(list => list.id === selectedList.id);
+        setSelectedList(updatedSelectedList || lists[0]);
       }
     } catch (error) {
-      console.error('Error cargando palabras guardadas:', error);
-      Alert.alert('Error', 'No se pudieron cargar las palabras guardadas');
+      console.error('Error cargando listas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las listas');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -45,34 +43,19 @@ export default function SavedWordsScreen() {
   // Cargar datos cuando la pantalla obtiene el foco
   useFocusEffect(
     useCallback(() => {
-      loadSavedWords();
+      loadAllLists();
     }, [])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadSavedWords();
-  };
-
-  const filterWords = (text) => {
-    setSearchFilter(text);
-    if (text.trim() === '') {
-      setFilteredWords(savedWords);
-    } else {
-      const filtered = savedWords.filter(wordData =>
-        wordData.word.toLowerCase().includes(text.toLowerCase()) ||
-        wordData.definitions.some(def => 
-          def.definition.toLowerCase().includes(text.toLowerCase())
-        )
-      );
-      setFilteredWords(filtered);
-    }
+    loadAllLists();
   };
 
   const confirmDeleteWord = (wordData) => {
     Alert.alert(
       'Eliminar palabra',
-      `¿Estás seguro de que quieres eliminar "${wordData.word}" de tu lista?`,
+      `¿Estás seguro de que quieres eliminar "${wordData.word}" de "${selectedList.name}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
@@ -86,9 +69,9 @@ export default function SavedWordsScreen() {
 
   const deleteWord = async (wordData) => {
     try {
-      const success = await removeWordFromList('default', wordData.id);
+      const success = await removeWordFromList(selectedList.id, wordData.id);
       if (success) {
-        loadSavedWords(); // Recargar la lista
+        loadAllLists(); // Recargar todas las listas
         Alert.alert('Éxito', 'Palabra eliminada correctamente');
       } else {
         Alert.alert('Error', 'No se pudo eliminar la palabra');
@@ -98,6 +81,88 @@ export default function SavedWordsScreen() {
       Alert.alert('Error', 'Ocurrió un error al eliminar la palabra');
     }
   };
+
+  const confirmDeleteList = (list) => {
+    Alert.alert(
+      'Eliminar lista',
+      `¿Estás seguro de que quieres eliminar la lista "${list.name}"?\n\nEsta acción eliminará todas las palabras de la lista y no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: () => handleDeleteList(list)
+        }
+      ]
+    );
+  };
+
+  const handleDeleteList = async (list) => {
+    try {
+      const result = await deleteWordList(list.id);
+      if (result.success) {
+        // Si eliminamos la lista seleccionada, cambiar a "General"
+        if (selectedList.id === list.id) {
+          const defaultList = allLists.find(l => l.id === 'default');
+          setSelectedList(defaultList);
+        }
+        await loadAllLists();
+        Alert.alert('Éxito', 'Lista eliminada correctamente');
+      } else {
+        Alert.alert('Error', result.message);
+      }
+    } catch (error) {
+      console.error('Error eliminando lista:', error);
+      Alert.alert('Error', 'No se pudo eliminar la lista');
+    }
+  };
+
+  const renderListSelector = () => (
+    <View style={styles.selectorContainer}>
+      <Text style={styles.selectorTitle}>Seleccionar lista:</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.selectorScroll}
+        contentContainerStyle={styles.selectorContent}
+      >
+        {allLists.map((list) => (
+          <View key={list.id} style={styles.listOptionContainer}>
+            <TouchableOpacity
+              style={[
+                styles.listOption,
+                selectedList?.id === list.id && styles.listOptionSelected
+              ]}
+              onPress={() => setSelectedList(list)}
+            >
+              <Text style={[
+                styles.listOptionText,
+                selectedList?.id === list.id && styles.listOptionTextSelected
+              ]}>
+                {list.name}
+              </Text>
+              <Text style={[
+                styles.listOptionCount,
+                selectedList?.id === list.id && styles.listOptionCountSelected
+              ]}>
+                {list.words.length} palabras
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Botón eliminar lista (solo si no es la default) */}
+            {list.id !== 'default' && (
+              <TouchableOpacity
+                style={styles.deleteListButtonSmall}
+                onPress={() => confirmDeleteList(list)}
+              >
+                <Text style={styles.deleteListButtonText}>🗑️</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   const renderWordItem = (wordData, index) => {
     const addedDate = new Date(wordData.addedAt).toLocaleDateString('es-ES', {
@@ -151,7 +216,7 @@ export default function SavedWordsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>Cargando palabras...</Text>
+        <Text style={styles.loadingText}>Cargando listas...</Text>
       </View>
     );
   }
@@ -159,23 +224,16 @@ export default function SavedWordsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mis Palabras</Text>
+        <Text style={styles.title}>Mis Listas</Text>
         <Text style={styles.subtitle}>
-          {filteredWords.length} palabra{filteredWords.length !== 1 ? 's' : ''} guardada{filteredWords.length !== 1 ? 's' : ''}
+          {allLists.length} lista{allLists.length !== 1 ? 's' : ''} creada{allLists.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
-      {savedWords.length > 0 && (
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar en mis palabras..."
-          value={searchFilter}
-          onChangeText={filterWords}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      )}
+      {/* SELECTOR DE LISTAS */}
+      {renderListSelector()}
 
+      {/* PALABRAS DE LA LISTA SELECCIONADA */}
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -183,25 +241,33 @@ export default function SavedWordsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {filteredWords.length === 0 ? (
+        {selectedList && (
+          <View style={styles.selectedListHeader}>
+            <Text style={styles.selectedListTitle}>{selectedList.name}</Text>
+            <Text style={styles.selectedListCount}>
+              {selectedList.words.length} palabra{selectedList.words.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
+
+        {!selectedList || selectedList.words.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📚</Text>
             <Text style={styles.emptyTitle}>
-              {savedWords.length === 0 
-                ? 'No tienes palabras guardadas' 
-                : 'No se encontraron palabras'
-              }
+              {!selectedList ? 'Selecciona una lista' : 'Lista vacía'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {savedWords.length === 0 
-                ? 'Busca palabras en el diccionario y guárdalas para crear tu lista personal'
-                : 'Intenta con otros términos de búsqueda'
+              {!selectedList 
+                ? 'Elige una lista para ver sus palabras'
+                : 'Esta lista no tiene palabras guardadas'
               }
             </Text>
           </View>
         ) : (
           <View style={styles.wordsContainer}>
-            {filteredWords.map((wordData, index) => renderWordItem(wordData, index))}
+            {selectedList.words
+              .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
+              .map((wordData, index) => renderWordItem(wordData, index))}
           </View>
         )}
       </ScrollView>
@@ -239,23 +305,100 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
-  searchInput: {
-    margin: 20,
-    marginBottom: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: '#f8f9fa',
-    fontSize: 16,
+  
+  // ESTILOS DEL SELECTOR
+  selectorContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
   },
+  selectorTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 10,
+    paddingHorizontal: 20,
+  },
+  selectorScroll: {
+    paddingHorizontal: 20,
+  },
+  selectorContent: {
+    paddingRight: 20,
+  },
+  listOptionContainer: {
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  listOption: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#e9ecef',
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  listOptionSelected: {
+    backgroundColor: '#3498db',
+    borderColor: '#3498db',
+  },
+  listOptionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  listOptionTextSelected: {
+    color: 'white',
+  },
+  listOptionCount: {
+    fontSize: 11,
+    color: '#7f8c8d',
+    marginTop: 2,
+  },
+  listOptionCountSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  deleteListButtonSmall: {
+    backgroundColor: '#ffe6e6',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 5,
+  },
+  deleteListButtonText: {
+    fontSize: 12,
+  },
+
+  // ESTILOS DE LA LISTA SELECCIONADA
+  selectedListHeader: {
+    backgroundColor: '#f0f8ff',
+    padding: 15,
+    margin: 20,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3498db',
+  },
+  selectedListTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  selectedListCount: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
   scrollContainer: {
     flex: 1,
   },
   wordsContainer: {
     padding: 20,
-    paddingTop: 10,
+    paddingTop: 0,
   },
   wordItem: {
     backgroundColor: '#fff',
@@ -370,22 +513,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#7f8c8d',
   },
-  gameButton: {
-  backgroundColor: '#9b59b6',
-  marginHorizontal: 20,
-  marginBottom: 10,
-  padding: 15,
-  borderRadius: 10,
-  alignItems: 'center',
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 3.84,
-},
-gameButtonText: {
-  color: 'white',
-  fontWeight: 'bold',
-  fontSize: 16,
-},
 });

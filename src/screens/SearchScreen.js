@@ -78,29 +78,45 @@ export default function SearchScreen() {
     setShowListModal(true);
   };
 
-  // AÑADIR ESTA NUEVA FUNCIÓN:
-  const handleSaveToList = async (selectedList) => {
-    setSaving(true);
+  // AÑADIR ESTA NUEVA FUNCIÓN para guardar las palabras en una lista:
+const handleSaveToList = async (selectedList) => {
+  setSaving(true);
+  
+  try {
+    // PASO 1: Siempre guardar en "General" (lista default)
+    const defaultResult = await addWordToList('default', wordData);
     
-    try {
-      const result = await addWordToList(selectedList.id, wordData);
-      
-      if (result.success) {
-        Alert.alert(
-          'Éxito', 
-          `Palabra guardada en "${selectedList.name}"`,
-          [{ text: 'OK', style: 'default' }]
-        );
-      } else {
-        Alert.alert('Aviso', result.message);
-      }
-    } catch (error) {
-      console.error('Error guardando palabra:', error);
-      Alert.alert('Error', 'No se pudo guardar la palabra');
+    // PASO 2: Si la lista seleccionada NO es la default, también guardar ahí
+    let customResult = { success: true };
+    if (selectedList.id !== 'default') {
+      customResult = await addWordToList(selectedList.id, wordData);
     }
     
-    setSaving(false);
-  };
+    // PASO 3: Mostrar mensaje según el resultado
+    if (defaultResult.success && customResult.success) {
+      if (selectedList.id === 'default') {
+        Alert.alert('Éxito', 'Palabra guardada en "General"');
+      } else {
+        Alert.alert(
+          'Éxito', 
+          `Palabra guardada en "General" y en "${selectedList.name}"`
+        );
+      }
+    } else {
+      // Si ya existe en alguna lista, mostrar mensaje apropiado
+      if (!defaultResult.success && defaultResult.message.includes('ya existe')) {
+        Alert.alert('Aviso', 'La palabra ya estaba en tu biblioteca');
+      } else {
+        Alert.alert('Error', 'No se pudo guardar la palabra');
+      }
+    }
+  } catch (error) {
+    console.error('Error guardando palabra:', error);
+    Alert.alert('Error', 'No se pudo guardar la palabra');
+  }
+  
+  setSaving(false);
+};
 
   const renderDefinitions = () => {
     if (!wordData || !wordData.definitions || wordData.definitions.length === 0) return null;

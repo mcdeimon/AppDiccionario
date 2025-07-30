@@ -12,7 +12,7 @@ const initializeDefaultList = async () => {
     if (!existingLists.find(list => list.id === 'default')) {
       const defaultList = {
         id: 'default',
-        name: 'Mis Palabras',
+        name: 'General',
         words: [],
         createdAt: new Date().toISOString()
       };

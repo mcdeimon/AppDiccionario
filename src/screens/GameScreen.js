@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'; // MODIFICAR ESTA LÍNEA
+import React, { useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -8,54 +8,75 @@ import {
   ScrollView,
   ActivityIndicator 
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native'; // AÑADIR ESTA LÍNEA
-import { getDefaultList } from '../services/storageService';
+import { useFocusEffect } from '@react-navigation/native';
+import { getWordLists } from '../services/storageService';
 
 export default function GameScreen({ navigation }) {
-  const [savedWords, setSavedWords] = useState([]);
+  const [allLists, setAllLists] = useState([]);
+  const [selectedList, setSelectedList] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [gameStarted, setGameStarted] = useState(false);
 
-  // REEMPLAZAR useEffect con useFocusEffect
   useFocusEffect(
     useCallback(() => {
-      // Resetear estado cuando la pantalla obtiene el foco
-      setScore(0);
-      setQuestionsAnswered(0);
-      setCurrentQuestion(null);
-      setSelectedAnswer(null);
-      setShowResult(false);
-      setLoading(true);
-      
-      loadWordsAndStartGame();
+      // Resetear todo el estado cuando la pantalla obtiene el foco
+      resetGame();
+      loadAllLists();
     }, [])
   );
 
-  const loadWordsAndStartGame = async () => {
+  const resetGame = () => {
+    setScore(0);
+    setQuestionsAnswered(0);
+    setCurrentQuestion(null);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setGameStarted(false);
+  };
+
+  const loadAllLists = async () => {
+    setLoading(true);
     try {
-      const defaultList = await getDefaultList();
-      if (defaultList && defaultList.words && defaultList.words.length >= 2) {
-        setSavedWords(defaultList.words);
-        generateQuestion(defaultList.words);
-      } else {
-        Alert.alert(
-          'Palabras insuficientes', 
-          'Necesitas al menos 2 palabras guardadas para jugar',
-          [
-            { text: 'Ir a búsqueda', onPress: () => navigation.navigate('Search') },
-            { text: 'Ver mis palabras', onPress: () => navigation.navigate('SavedWords') }
-          ]
-        );
+      const lists = await getWordLists();
+      // Filtrar listas que tengan al menos 2 palabras
+      const validLists = lists.filter(list => list.words && list.words.length >= 2);
+      setAllLists(validLists);
+      
+      // Seleccionar "General" por defecto si está disponible
+      const defaultList = validLists.find(list => list.id === 'default');
+      if (defaultList) {
+        setSelectedList(defaultList);
+      } else if (validLists.length > 0) {
+        setSelectedList(validLists[0]);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar las palabras');
+      console.error('Error cargando listas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las listas');
     } finally {
       setLoading(false);
     }
+  };
+
+  const startGame = () => {
+    if (!selectedList || selectedList.words.length < 2) {
+      Alert.alert(
+        'Palabras insuficientes', 
+        'Necesitas al menos 2 palabras en la lista seleccionada para jugar',
+        [
+          { text: 'Ir a búsqueda', onPress: () => navigation.navigate('Search') },
+          { text: 'Ver mis listas', onPress: () => navigation.navigate('SavedWords') }
+        ]
+      );
+      return;
+    }
+    
+    setGameStarted(true);
+    generateQuestion(selectedList.words);
   };
 
   const generateQuestion = (wordsList) => {
@@ -100,8 +121,8 @@ export default function GameScreen({ navigation }) {
   };
 
   const nextQuestion = () => {
-    if (savedWords.length > 0) {
-      generateQuestion(savedWords);
+    if (selectedList && selectedList.words.length > 0) {
+      generateQuestion(selectedList.words);
     }
   };
 
@@ -121,6 +142,42 @@ export default function GameScreen({ navigation }) {
     return [styles.optionButton, styles.disabledOption];
   };
 
+  const renderListSelector = () => (
+    <View style={styles.selectorContainer}>
+      <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.selectorScroll}
+        contentContainerStyle={styles.selectorContent}
+      >
+        {allLists.map((list) => (
+          <TouchableOpacity
+            key={list.id}
+            style={[
+              styles.listOption,
+              selectedList?.id === list.id && styles.listOptionSelected
+            ]}
+            onPress={() => setSelectedList(list)}
+          >
+            <Text style={[
+              styles.listOptionText,
+              selectedList?.id === list.id && styles.listOptionTextSelected
+            ]}>
+              {list.name}
+            </Text>
+            <Text style={[
+              styles.listOptionCount,
+              selectedList?.id === list.id && styles.listOptionCountSelected
+            ]}>
+              {list.words.length} palabras
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -130,11 +187,13 @@ export default function GameScreen({ navigation }) {
     );
   }
 
-  if (!currentQuestion) {
+  if (allLists.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyTitle}>😔 No se pudo iniciar el juego</Text>
-        <Text style={styles.emptySubtitle}>Necesitas al menos 2 palabras guardadas</Text>
+        <Text style={styles.emptyTitle}>😔 No hay listas disponibles</Text>
+        <Text style={styles.emptySubtitle}>
+          Necesitas al menos una lista con 2 o más palabras para jugar
+        </Text>
         <TouchableOpacity 
           style={styles.actionButton} 
           onPress={() => navigation.navigate('Search')}
@@ -145,13 +204,61 @@ export default function GameScreen({ navigation }) {
     );
   }
 
+  // Si no se ha iniciado el juego, mostrar selector y botón de inicio
+  if (!gameStarted) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>🎯 Quiz de Definiciones</Text>
+          <Text style={styles.subtitle}>Elige una lista y demuestra tu conocimiento</Text>
+        </View>
+
+        {renderListSelector()}
+
+        {selectedList && (
+          <View style={styles.selectedListInfo}>
+            <Text style={styles.selectedListTitle}>Lista seleccionada:</Text>
+            <Text style={styles.selectedListName}>{selectedList.name}</Text>
+            <Text style={styles.selectedListDetails}>
+              {selectedList.words.length} palabra{selectedList.words.length !== 1 ? 's' : ''} disponible{selectedList.words.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.startGameContainer}>
+          <TouchableOpacity
+            style={[
+              styles.startGameButton,
+              (!selectedList || selectedList.words.length < 2) && styles.startGameButtonDisabled
+            ]}
+            onPress={startGame}
+            disabled={!selectedList || selectedList.words.length < 2}
+          >
+            <Text style={styles.startGameButtonText}>🚀 Comenzar Juego</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Juego en curso
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🎯 Quiz de Definiciones</Text>
+        <View style={styles.gameHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setGameStarted(false)}
+          >
+            <Text style={styles.backButtonText}>← Volver</Text>
+          </TouchableOpacity>
+          <View style={styles.gameInfo}>
+            <Text style={styles.gameListName}>{selectedList.name}</Text>
+            <Text style={styles.gameProgress}>Pregunta {questionsAnswered + 1}</Text>
+          </View>
+        </View>
         <View style={styles.statsContainer}>
           <Text style={styles.score}>Puntos: {score}</Text>
-          <Text style={styles.progress}>Pregunta {questionsAnswered + 1}</Text>
         </View>
       </View>
 
@@ -232,11 +339,149 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+  },
+  
+  // ESTILOS DEL SELECTOR
+  selectorContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  selectorTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  selectorScroll: {
+    // sin estilos adicionales necesarios
+  },
+  selectorContent: {
+    paddingRight: 20,
+  },
+  listOption: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#e9ecef',
+    marginRight: 15,
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  listOptionSelected: {
+    backgroundColor: '#3498db',
+    borderColor: '#3498db',
+  },
+  listOptionText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  listOptionTextSelected: {
+    color: 'white',
+  },
+  listOptionCount: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 3,
+  },
+  listOptionCountSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  
+  // INFO DE LISTA SELECCIONADA
+  selectedListInfo: {
+    backgroundColor: '#f0f8ff',
+    margin: 20,
+    padding: 20,
+    borderRadius: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3498db',
+    alignItems: 'center',
+  },
+  selectedListTitle: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 5,
+  },
+  selectedListName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 5,
+  },
+  selectedListDetails: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  
+  // BOTÓN DE INICIO
+  startGameContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  startGameButton: {
+    backgroundColor: '#27ae60',
+    paddingVertical: 18,
+    borderRadius: 15,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  startGameButtonDisabled: {
+    backgroundColor: '#95a5a6',
+  },
+  startGameButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  
+  // HEADER DEL JUEGO EN CURSO
+  gameHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
   },
+  backButton: {
+    backgroundColor: '#95a5a6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 15,
+  },
+  backButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  gameInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  gameListName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  gameProgress: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   score: {
@@ -244,10 +489,8 @@ const styles = StyleSheet.create({
     color: '#27ae60',
     fontWeight: 'bold',
   },
-  progress: {
-    fontSize: 16,
-    color: '#7f8c8d',
-  },
+  
+  // RESTO DE ESTILOS DEL JUEGO (mantener los existentes)
   questionContainer: {
     padding: 20,
     backgroundColor: '#fff',

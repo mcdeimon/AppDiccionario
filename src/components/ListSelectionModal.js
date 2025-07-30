@@ -9,7 +9,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
 import { getWordLists, createWordList, deleteWordList } from '../services/storageService';
 
@@ -28,83 +27,80 @@ export default function ListSelectionModal({
   useEffect(() => {
     if (visible) {
       loadLists();
-      setShowCreateForm(false);
-      setNewListName('');
     }
   }, [visible]);
 
-  const loadLists = async () => {
-    setLoading(true);
-    try {
-      const allLists = await getWordLists();
-      setLists(allLists);
-    } catch (error) {
-      console.error('Error cargando listas:', error);
-      Alert.alert('Error', 'No se pudieron cargar las listas');
-    } finally {
-      setLoading(false);
-    }
-  };
+ const loadLists = async () => {
+  setLoading(true);
+  try {
+    const allLists = await getWordLists();
+    // FILTRAR para que NO aparezca la lista "default" (General)
+    const filteredLists = allLists.filter(list => list.id !== 'default');
+    setLists(filteredLists);
+  } catch (error) {
+    console.error('Error cargando listas:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCreateList = async () => {
     if (!newListName.trim()) {
-      Alert.alert('Error', 'Por favor ingresa un nombre para la lista');
+      Alert.alert('Error', 'Escribe un nombre para la lista');
       return;
     }
 
     setCreating(true);
     try {
       const result = await createWordList(newListName);
-      
       if (result.success) {
         setNewListName('');
         setShowCreateForm(false);
-        await loadLists();
-        Alert.alert('Éxito', result.message);
+        await loadLists(); // Recargar listas después de crear
+        Alert.alert('Éxito', 'Lista creada correctamente');
       } else {
         Alert.alert('Error', result.message);
       }
     } catch (error) {
-      console.error('Error creando lista:', error);
       Alert.alert('Error', 'No se pudo crear la lista');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleSelectList = (list) => {
-    onSelectList(list);
-    onClose();
+  // MODIFICAR ESTA FUNCIÓN para recargar las listas después de seleccionar
+  const handleSelectList = async (list) => {
+    // Llamar a la función original
+    await onSelectList(list);
+    
+    // Recargar las listas después de un breve delay
+    setTimeout(() => {
+      if (visible) {
+        loadLists();
+      }
+    }, 500);
   };
 
-  const confirmDeleteList = (list) => {
+  const handleDeleteList = (list) => {
     Alert.alert(
       'Eliminar lista',
-      `¿Estás seguro de que quieres eliminar "${list.name}"?`,
+      `¿Eliminar "${list.name}"?`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cancelar' },
         { 
           text: 'Eliminar', 
-          style: 'destructive',
-          onPress: () => handleDeleteList(list)
+          onPress: async () => {
+            const result = await deleteWordList(list.id);
+            if (result.success) {
+              await loadLists(); // Recargar listas después de eliminar
+              Alert.alert('Éxito', 'Lista eliminada correctamente');
+            } else {
+              Alert.alert('Error', result.message);
+            }
+          }
         }
       ]
     );
-  };
-
-  const handleDeleteList = async (list) => {
-    try {
-      const result = await deleteWordList(list.id);
-      if (result.success) {
-        await loadLists();
-        Alert.alert('Éxito', result.message);
-      } else {
-        Alert.alert('Error', result.message);
-      }
-    } catch (error) {
-      console.error('Error eliminando lista:', error);
-      Alert.alert('Error', 'No se pudo eliminar la lista');
-    }
   };
 
   return (
@@ -112,125 +108,121 @@ export default function ListSelectionModal({
       visible={visible}
       transparent={true}
       animationType="slide"
-      onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.container}>
-          {/* Header */}
+      <View style={styles.backdrop}>
+        <View style={styles.modal}>
+          
+          {/* HEADER */}
           <View style={styles.header}>
             <Text style={styles.title}>Seleccionar lista</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>✕</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Palabra a guardar */}
-          {wordData && (
-            <View style={styles.wordInfo}>
-              <Text style={styles.wordInfoText}>
-                Guardando: <Text style={styles.wordName}>"{wordData.word}"</Text>
-              </Text>
+          {/* PALABRA */}
+          <View style={styles.wordSection}>
+            <Text style={styles.wordText}>
+              Guardando: "{wordData?.word}"
+            </Text>
+          </View>
+
+          {/* CONTENIDO */}
+          {loading ? (
+            <View style={styles.loadingSection}>
+              <ActivityIndicator size="large" color="#3498db" />
+              <Text>Cargando...</Text>
             </View>
-          )}
-
-          {/* Contenido */}
-          <ScrollView style={styles.content}>
-            {loading ? (
-              <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#3498db" />
-                <Text style={styles.loadingText}>Cargando...</Text>
-              </View>
-            ) : (
-              <>
-                {/* Listas existentes */}
-                {lists.map((list) => (
-                  <View key={list.id} style={styles.listRow}>
-                    <TouchableOpacity
-                      style={styles.listButton}
-                      onPress={() => handleSelectList(list)}
-                    >
-                      <View>
-                        <Text style={styles.listName}>{list.name}</Text>
-                        <Text style={styles.listCount}>
-                          {list.words.length} palabras
-                        </Text>
-                      </View>
-                      <Text style={styles.arrow}>→</Text>
-                    </TouchableOpacity>
-                    
-                    {list.id !== 'default' && (
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => confirmDeleteList(list)}
-                      >
-                        <Text style={styles.deleteText}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))}
-
-                {/* Formulario crear nueva lista */}
-                {showCreateForm ? (
-                  <View style={styles.createForm}>
-                    <Text style={styles.createTitle}>Nueva lista</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Nombre de la lista..."
-                      value={newListName}
-                      onChangeText={setNewListName}
-                      autoFocus={true}
-                    />
-                    <View style={styles.formButtons}>
-                      <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => {
-                          setShowCreateForm(false);
-                          setNewListName('');
-                        }}
-                      >
-                        <Text style={styles.cancelButtonText}>Cancelar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.createButton}
-                        onPress={handleCreateList}
-                        disabled={creating}
-                      >
-                        {creating ? (
-                          <ActivityIndicator color="white" size="small" />
-                        ) : (
-                          <Text style={styles.createButtonText}>Crear</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
+          ) : (
+            <ScrollView style={styles.scrollSection}>
+              
+              {/* LISTAS */}
+              {lists.map((list) => (
+                <View key={list.id} style={styles.listContainer}>
                   <TouchableOpacity
-                    style={styles.newListButton}
-                    onPress={() => setShowCreateForm(true)}
+                    style={styles.listButton}
+                    onPress={() => handleSelectList(list)}
                   >
-                    <Text style={styles.newListText}>+ Crear nueva lista</Text>
+                    <Text style={styles.listName}>{list.name}</Text>
+                    <Text style={styles.listCount}>
+                      {list.words.length} palabra{list.words.length !== 1 ? 's' : ''}
+                    </Text>
                   </TouchableOpacity>
-                )}
-              </>
-            )}
-          </ScrollView>
-        </SafeAreaView>
+                  
+                  {list.id !== 'default' && (
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteList(list)}
+                    >
+                      <Text>🗑️</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+
+              {/* CREAR NUEVA LISTA */}
+              {showCreateForm ? (
+                <View style={styles.createSection}>
+                  <Text style={styles.createTitle}>Nueva lista:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nombre..."
+                    value={newListName}
+                    onChangeText={setNewListName}
+                  />
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => {
+                        setShowCreateForm(false);
+                        setNewListName('');
+                      }}
+                    >
+                      <Text style={styles.buttonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.confirmButton}
+                      onPress={handleCreateList}
+                      disabled={creating}
+                    >
+                      <Text style={styles.buttonText}>
+                        {creating ? 'Creando...' : 'Crear'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.newListButton}
+                  onPress={() => setShowCreateForm(true)}
+                >
+                  <Text style={styles.newListText}>+ Crear nueva lista</Text>
+                </TouchableOpacity>
+              )}
+              
+              {/* ESPACIO EXTRA */}
+              <View style={{ height: 100 }} />
+            </ScrollView>
+          )}
+        </View>
       </View>
     </Modal>
   );
 }
 
+// Los estilos permanecen igual...
 const styles = StyleSheet.create({
-  overlay: {
+  backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
   },
-  container: {
+  modal: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 15,
     maxHeight: '80%',
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',
@@ -246,56 +238,41 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   closeButton: {
+    fontSize: 20,
+    color: '#666',
     padding: 5,
   },
-  closeText: {
-    fontSize: 18,
-    color: '#666',
-  },
-  wordInfo: {
+  wordSection: {
     backgroundColor: '#f0f8ff',
     padding: 15,
-    margin: 20,
-    marginBottom: 10,
+    margin: 15,
     borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3498db',
   },
-  wordInfoText: {
+  wordText: {
     fontSize: 14,
-    color: '#666',
-  },
-  wordName: {
-    fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 10,
-  },
-  loading: {
+  loadingSection: {
     alignItems: 'center',
     padding: 40,
   },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
+  scrollSection: {
+    maxHeight: 400,
+    padding: 15,
   },
-  listRow: {
+  listContainer: {
     flexDirection: 'row',
     marginBottom: 10,
+    alignItems: 'center',
   },
   listButton: {
     flex: 1,
     backgroundColor: '#f8f9fa',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ddd',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   listName: {
     fontSize: 16,
@@ -307,37 +284,23 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  arrow: {
-    fontSize: 18,
-    color: '#3498db',
-  },
   deleteButton: {
     backgroundColor: '#ffe6e6',
-    borderWidth: 1,
-    borderColor: '#ffcccc',
+    padding: 10,
     borderRadius: 8,
-    padding: 15,
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginLeft: 8,
   },
-  deleteText: {
-    fontSize: 16,
-  },
-  createForm: {
+  createSection: {
     backgroundColor: '#f0f8ff',
-    padding: 20,
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 8,
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#3498db',
   },
   createTitle: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 10,
     textAlign: 'center',
-    marginBottom: 15,
-    color: '#333',
   },
   input: {
     backgroundColor: 'white',
@@ -345,10 +308,9 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
     marginBottom: 15,
   },
-  formButtons: {
+  buttonRow: {
     flexDirection: 'row',
     gap: 10,
   },
@@ -359,18 +321,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  cancelButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  createButton: {
+  confirmButton: {
     flex: 1,
     backgroundColor: '#3498db',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  createButtonText: {
+  buttonText: {
     color: 'white',
     fontWeight: 'bold',
   },
@@ -378,12 +336,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderWidth: 2,
     borderColor: '#27ae60',
-    borderStyle: 'dashed',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 15,
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 40,
   },
   newListText: {
     color: '#27ae60',
