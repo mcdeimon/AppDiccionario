@@ -208,3 +208,16 @@ export const getListById = async (listId) => {
 };
 
 // Fin Nuevas funciones creacion de Listas
+
+// Función para borrar todos los datos del usuario
+export const deleteAllUserData = async () => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.WORD_LISTS);
+    // Vuelve a inicializar la lista por defecto para que la app no se rompa
+    await initializeDefaultList(); 
+    return { success: true, message: 'Todos tus datos han sido eliminados.' };
+  } catch (error) {
+    console.error('Error borrando todos los datos:', error);
+    return { success: false, message: 'No se pudieron eliminar los datos.' };
+  }
+};

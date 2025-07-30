@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Keyboard 
+  Keyboard,
+  Share
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,6 +119,51 @@ const handleSaveToList = async (selectedList) => {
   setSaving(false);
 };
 
+ // <-- 2. AÑADIR LA FUNCIÓN PARA COMPARTIR
+ const handleShare = async () => {
+    if (!wordData) return;
+
+    try {
+      // 1. Empezamos con el título y la etimología si existe
+      let message = `📖 *${wordData.word}*\n`;
+      if (wordData.etymology) {
+        message += `_${wordData.etymology}_\n`;
+      }
+      message += '\n';
+
+      // 2. Recorremos todas las definiciones para añadirlas al mensaje
+      wordData.definitions.forEach((def, index) => {
+        message += `*${index + 1}.* ${def.definition}`;
+        if (def.category) {
+          message += ` _(${def.category})_`;
+        }
+        message += '\n';
+
+        // Añadimos sinónimos si existen
+        if (def.synonyms && def.synonyms.length > 0) {
+          message += `*Sinónimos:* ${def.synonyms.join(', ')}\n`;
+        }
+        
+        // Añadimos antónimos si existen
+        if (def.antonyms && def.antonyms.length > 0) {
+            message += `*Antónimos:* ${def.antonyms.join(', ')}\n`;
+        }
+
+        message += '\n'; // Espacio extra entre definiciones
+      });
+
+      // 3. Añadimos una pequeña firma al final
+      message += '---\nCompartido desde Glosario Universal';
+
+      await Share.share({
+        message: message,
+        title: `Definición de ${wordData.word}`
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error al intentar compartir.');
+    }
+  };
+
   const renderDefinitions = () => {
     if (!wordData || !wordData.definitions || wordData.definitions.length === 0) return null;
 
@@ -187,8 +233,13 @@ const handleSaveToList = async (selectedList) => {
         
         {wordData && (
           <View style={styles.resultContainer}>
-            <Text style={styles.wordTitle}>{wordData.word}</Text>
-
+            <View style={styles.wordHeader}>
+              <Text style={styles.wordTitle}>{wordData.word}</Text>
+              <TouchableOpacity onPress={handleShare} style={styles.iconButton}>
+                <Text style={styles.icon}>📤</Text>
+              </TouchableOpacity>
+            </View>
+            
             {wordData.language && !wordData.isSpanish && (
             <View style={styles.languageContainer}>
                 <Text style={styles.languageText}>
@@ -324,6 +375,29 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   },
+  // <-- 4. NUEVOS ESTILOS botón compartir
+  wordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  wordTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    flex: 1, // Para que ocupe el espacio disponible y el botón se alinee a la derecha
+  },
+  iconButton: {
+  paddingLeft: 15, // Añade un poco de espacio a su izquierda
+},
+icon: {
+  fontSize: 24,
+  color: '#3498db',
+  fontWeight: 'bold',
+},
+  // --- FIN DE LOS NUEVOS ESTILOS ---
+
   etymology: {
     fontSize: 14,
     fontStyle: 'italic',

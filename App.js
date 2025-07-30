@@ -6,6 +6,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import SearchScreen from './src/screens/SearchScreen';
 import SavedWordsScreen from './src/screens/SavedWordsScreen';
 import GameScreen from './src/screens/GameScreen'; // AÑADIR ESTA LÍNEA
+import SettingsScreen from './src/screens/SettingsScreen'; // <-- AÑADE ESTA LÍNEA
 
 const Tab = createBottomTabNavigator();
 
@@ -59,6 +60,14 @@ function AppNavigator() {
         options={{
           tabBarLabel: 'Juego',
           tabBarIcon: ({ color }) => <TabIcon emoji="🎮" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: 'Ajustes',
+          tabBarIcon: ({ color }) => <TabIcon emoji="⚙️" color={color} />,
         }}
       />
     </Tab.Navigator>

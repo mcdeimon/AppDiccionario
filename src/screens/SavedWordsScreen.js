@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Share,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getWordLists, removeWordFromList, deleteWordList } from '../services/storageService';
@@ -125,6 +126,41 @@ const resetState = () => {
     }
   };
 
+  //Funcion de compartir
+  const handleShare = async (wordData) => {
+    if (!wordData) return;
+
+    try {
+      let message = `📖 *${wordData.word}*\n`;
+      if (wordData.etymology) {
+        message += `_${wordData.etymology}_\n`;
+      }
+      message += '\n';
+      wordData.definitions.forEach((def, index) => {
+        message += `*${index + 1}.* ${def.definition}`;
+        if (def.category) {
+          message += ` _(${def.category})_`;
+        }
+        message += '\n';
+        if (def.synonyms && def.synonyms.length > 0) {
+          message += `*Sinónimos:* ${def.synonyms.join(', ')}\n`;
+        }
+        if (def.antonyms && def.antonyms.length > 0) {
+            message += `*Antónimos:* ${def.antonyms.join(', ')}\n`;
+        }
+        message += '\n';
+      });
+      message += '---\nCompartido desde Glosario Universal';
+
+      await Share.share({
+        message: message,
+        title: `Definición de ${wordData.word}`
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error al intentar compartir.');
+    }
+  };
+
   const renderWordItem = (wordData, index) => {
     const addedDate = new Date(wordData.addedAt).toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -136,12 +172,20 @@ const resetState = () => {
       <View key={wordData.id || index} style={styles.wordItem}>
         <View style={styles.wordHeader}>
           <Text style={styles.wordTitle}>{wordData.word}</Text>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => confirmDeleteWord(wordData)}
-          >
-            <Text style={styles.deleteButtonText}>🗑️</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => handleShare(wordData)}
+            >
+              <Text style={styles.deleteButtonText}>📤</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => confirmDeleteWord(wordData)}
+            >
+              <Text style={styles.deleteButtonText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Text style={styles.addedDate}>Agregada el {addedDate}</Text>
@@ -414,15 +458,20 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     flex: 1,
   },
-  deleteButton: {
+  // AÑADE ESTOS ESTILOS NUEVOS
+  buttonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10, // Espacio entre el título y los botones
+  },
+  iconButton: {
     padding: 8,
+    marginLeft: 8, // Espacio entre los dos botones
     borderRadius: 6,
-    backgroundColor: '#fff5f5',
-    borderWidth: 1,
-    borderColor: '#fed7d7',
+    backgroundColor: '#f8f9fa',
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 18, // Un poco más grande para que se vea bien
   },
   addedDate: {
     fontSize: 12,
