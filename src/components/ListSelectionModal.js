@@ -34,8 +34,10 @@ export default function ListSelectionModal({
   setLoading(true);
   try {
     const allLists = await getWordLists();
-    // FILTRAR para que NO aparezca la lista "default" (General)
-    const filteredLists = allLists.filter(list => list.id !== 'default');
+    // CAMBIAR ESTA LÍNEA: Remover el filtro que excluye la lista default
+    // const filteredLists = allLists.filter(list => list.id !== 'default');
+    // POR ESTA LÍNEA: Mostrar todas las listas incluyendo la default
+    const filteredLists = allLists;
     setLists(filteredLists);
   } catch (error) {
     console.error('Error cargando listas:', error);

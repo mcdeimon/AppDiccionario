@@ -6,17 +6,28 @@ const STORAGE_KEYS = {
 };
 
 // Inicializar lista por defecto
+// Inicializar lista por defecto
 const initializeDefaultList = async () => {
   try {
     const existingLists = await getWordLists();
-    if (!existingLists.find(list => list.id === 'default')) {
-      const defaultList = {
+    const defaultList = existingLists.find(list => list.id === 'default');
+    
+    if (!defaultList) {
+      // Si no existe la lista default, crearla
+      const newDefaultList = {
         id: 'default',
         name: 'General',
         words: [],
         createdAt: new Date().toISOString()
       };
-      await saveWordList(defaultList);
+      await saveWordList(newDefaultList);
+    } else {
+      // Si existe pero tiene un nombre diferente, actualizarlo
+      if (defaultList.name !== 'General') {
+        defaultList.name = 'General';
+        await saveWordList(defaultList);
+        console.log('Nombre de lista default actualizado a "General"');
+      }
     }
   } catch (error) {
     console.error('Error inicializando lista por defecto:', error);

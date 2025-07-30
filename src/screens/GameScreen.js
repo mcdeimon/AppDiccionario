@@ -483,7 +483,30 @@ selectorContainer: {
     paddingHorizontal: 20,
     paddingVertical: 30,
   },
-  startGameButton: {
+   startGameButton: {
+    backgroundColor: '#3498db',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  startGameButtonDisabled: {
+    backgroundColor: '#bdc3c7',
+  },
+  startGameButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  startGameButtonOld: {
     backgroundColor: '#27ae60',
     paddingVertical: 18,
     borderRadius: 15,
@@ -494,10 +517,10 @@ selectorContainer: {
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  startGameButtonDisabled: {
+  startGameButtonDisabledOld: {
     backgroundColor: '#95a5a6',
   },
-  startGameButtonText: {
+  startGameButtonTextOld: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
