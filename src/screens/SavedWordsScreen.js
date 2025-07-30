@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   // NUEVO ESTILO PARA EL SELECTOR DENTRO DEL HEADER
   selectorInHeader: {
     marginTop: 25,
-    marginHorizontal: -15,
+    marginHorizontal: -5,
   },
   
   // ESTILOS DEL SELECTOR
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   */
   selectorScroll: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 5,
   },
   selectorContent: {
     paddingRight: 10,

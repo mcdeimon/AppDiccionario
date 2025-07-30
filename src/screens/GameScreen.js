@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   selectorInHeader: {
   marginTop: 25,
-  marginHorizontal: -5,
+  marginHorizontal: 0,
 },
 selectorScroll: {
   paddingHorizontal: 5,
