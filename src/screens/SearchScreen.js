@@ -155,12 +155,12 @@ const handleSaveToList = async (selectedList) => {
           paddingBottom: bottomPadding,
         }}
       >
-        <Text style={styles.title}>Diccionario Español</Text>
-        <Text style={styles.subtitle}>Tu compañero de aprendizaje</Text>
+        <Text style={styles.title}>Glosario Universal</Text>
+        <Text style={styles.subtitle}>Más que un diccionario</Text>
         
         <TextInput
           style={styles.input}
-          placeholder="Escribe una palabra..."
+          placeholder="Escribe una palabra, expresión..."
           value={searchTerm}
           onChangeText={setSearchTerm}
           autoCapitalize="none"
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 30,
   },
   title: {
     fontSize: 28,

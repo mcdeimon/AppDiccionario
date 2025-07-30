@@ -143,17 +143,17 @@ export default function GameScreen({ navigation }) {
   };
 
   const renderListSelector = () => (
-    <View style={styles.selectorContainer}>
-      <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.selectorScroll}
-        contentContainerStyle={styles.selectorContent}
-      >
-        {allLists.map((list) => (
+  <View style={styles.selectorContainer}>
+    {/* <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text> */}
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      style={styles.selectorScroll}
+      contentContainerStyle={styles.selectorContent}
+    >
+      {allLists.map((list) => (
+        <View key={list.id} style={styles.listOptionContainer}>
           <TouchableOpacity
-            key={list.id}
             style={[
               styles.listOption,
               selectedList?.id === list.id && styles.listOptionSelected
@@ -173,10 +173,11 @@ export default function GameScreen({ navigation }) {
               {list.words.length} palabras
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+        </View>
+      ))}
+    </ScrollView>
+  </View>
+);
 
   if (loading) {
     return (
@@ -207,38 +208,69 @@ export default function GameScreen({ navigation }) {
   // Si no se ha iniciado el juego, mostrar selector y botón de inicio
   if (!gameStarted) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>🎯 Quiz de Definiciones</Text>
-          <Text style={styles.subtitle}>Elige una lista y demuestra tu conocimiento</Text>
-        </View>
-
-        {renderListSelector()}
-
-        {selectedList && (
-          <View style={styles.selectedListInfo}>
-            <Text style={styles.selectedListTitle}>Lista seleccionada:</Text>
-            <Text style={styles.selectedListName}>{selectedList.name}</Text>
-            <Text style={styles.selectedListDetails}>
-              {selectedList.words.length} palabra{selectedList.words.length !== 1 ? 's' : ''} disponible{selectedList.words.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.startGameContainer}>
-          <TouchableOpacity
-            style={[
-              styles.startGameButton,
-              (!selectedList || selectedList.words.length < 2) && styles.startGameButtonDisabled
-            ]}
-            onPress={startGame}
-            disabled={!selectedList || selectedList.words.length < 2}
-          >
-            <Text style={styles.startGameButtonText}>🚀 Comenzar Juego</Text>
-          </TouchableOpacity>
-        </View>
+  <View style={styles.container}>
+    <View style={styles.header}>
+      <Text style={styles.title}>Quiz de Definiciones</Text>
+      <Text style={styles.subtitle}>Elige una lista y demuestra tu conocimiento</Text>
+      
+      {/* SELECTOR DE LISTAS DENTRO DEL HEADER */}
+      <View style={styles.selectorInHeader}>
+        {/* <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text> */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.selectorScroll}
+          contentContainerStyle={styles.selectorContent}
+        >
+          {allLists.map((list) => (
+            <View key={list.id} style={styles.listOptionContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.listOption,
+                  selectedList?.id === list.id && styles.listOptionSelected
+                ]}
+                onPress={() => setSelectedList(list)}
+              >
+                <Text style={[
+                  styles.listOptionText,
+                  selectedList?.id === list.id && styles.listOptionTextSelected
+                ]}>
+                  {list.name}
+                </Text>
+                <Text style={[
+                  styles.listOptionCount,
+                  selectedList?.id === list.id && styles.listOptionCountSelected
+                ]}>
+                  {list.words.length} palabras
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
       </View>
-    );
+    </View>
+
+    {/* INFORMACIÓN Y BOTÓN DE INICIO */}
+    <View style={styles.startGameContainer}>
+      <TouchableOpacity
+        style={[
+          styles.startGameButton,
+          (!selectedList || selectedList.words.length < 2) && styles.startGameButtonDisabled
+        ]}
+        onPress={startGame}
+        disabled={!selectedList || selectedList.words.length < 2}
+      >
+        <Text style={styles.startGameButtonText}>🚀 Comenzar Juego</Text>
+      </TouchableOpacity>
+      
+      {selectedList && selectedList.words.length < 2 && (
+        <Text style={styles.warningText}>
+          Se necesitan al menos 2 palabras para jugar
+        </Text>
+      )}
+    </View>
+  </View>
+);
   }
 
   // Juego en curso
@@ -246,17 +278,18 @@ export default function GameScreen({ navigation }) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.gameHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setGameStarted(false)}
-          >
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
-          <View style={styles.gameInfo}>
-            <Text style={styles.gameListName}>{selectedList.name}</Text>
-            <Text style={styles.gameProgress}>Pregunta {questionsAnswered + 1}</Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setGameStarted(false)}
+            >
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+            <View style={styles.gameInfo}>
+              <Text style={styles.gameListName}>{selectedList.name}</Text>
+              <Text style={styles.gameProgress}>Pregunta {questionsAnswered + 1}</Text>
+            </View>
+            <View style={styles.spacer} />
           </View>
-        </View>
         <View style={styles.statsContainer}>
           <Text style={styles.score}>Puntos: {score}</Text>
         </View>
@@ -329,13 +362,13 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 30,
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
@@ -344,15 +377,32 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#7f8c8d',
+    fontStyle: 'italic',
     textAlign: 'center',
   },
+  selectorInHeader: {
+  marginTop: 25,
+  marginHorizontal: -5,
+},
+selectorScroll: {
+  paddingHorizontal: 5,
+},
+warningText: {
+  textAlign: 'center',
+  color: '#e74c3c',
+  fontSize: 14,
+  marginTop: 10,
+  fontStyle: 'italic',
+},
   
   // ESTILOS DEL SELECTOR
-  selectorContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-  },
+  /* COMENTAR ESTOS ESTILOS YA NO USADOS:
+selectorContainer: {
+  backgroundColor: '#fff',
+  paddingVertical: 20,
+  paddingHorizontal: 20,
+},
+*/
   selectorTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -366,23 +416,22 @@ const styles = StyleSheet.create({
   selectorContent: {
     paddingRight: 20,
   },
-  listOption: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#e9ecef',
-    marginRight: 15,
-    minWidth: 140,
-    alignItems: 'center',
-  },
+ listOption: {
+  backgroundColor: '#f8f9fa',
+  paddingHorizontal: 15,        // CAMBIAR DE 20 a 15
+  paddingVertical: 10,          // CAMBIAR DE 15 a 10
+  borderRadius: 20,             // MANTENER 20
+  borderWidth: 2,
+  borderColor: '#e9ecef',
+  minWidth: 120,                // CAMBIAR DE 140 a 120
+  alignItems: 'center',
+},
   listOptionSelected: {
     backgroundColor: '#3498db',
     borderColor: '#3498db',
   },
-  listOptionText: {
-    fontSize: 15,
+    listOptionText: {
+    fontSize: 14,                 // CAMBIAR DE 15 a 14
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
@@ -390,14 +439,18 @@ const styles = StyleSheet.create({
   listOptionTextSelected: {
     color: 'white',
   },
-  listOptionCount: {
-    fontSize: 12,
+    listOptionCount: {
+    fontSize: 11,                 // CAMBIAR DE 12 a 11
     color: '#7f8c8d',
-    marginTop: 3,
+    marginTop: 3,                 // CAMBIAR DE 3 a 2
   },
   listOptionCountSelected: {
     color: 'rgba(255,255,255,0.8)',
   },
+  listOptionContainer: {
+  marginRight: 10,    // IGUALAR a SavedWordsScreen
+  alignItems: 'center',
+},
   
   // INFO DE LISTA SELECCIONADA
   selectedListInfo: {
@@ -454,24 +507,33 @@ const styles = StyleSheet.create({
   gameHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
   backButton: {
-    backgroundColor: '#95a5a6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginRight: 15,
-  },
-  backButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  gameInfo: {
-    flex: 1,
-    alignItems: 'center',
-  },
+  backgroundColor: '#3498db',
+  width: 40,                        // AÑADIR width fijo
+  height: 40,                       // AÑADIR height fijo
+  borderRadius: 20,                 // CAMBIAR a circular
+  alignItems: 'center',             // AÑADIR para centrar
+  justifyContent: 'center',         // AÑADIR para centrar
+},
+backButtonText: {
+  color: 'white',
+  fontSize: 28,
+  fontWeight: 'bold',
+  textAlign: 'center',
+  marginTop: -10,                 // AJUSTAR este valor hasta que se vea centrado
+},
+gameInfo: {
+  position: 'absolute',             // AÑADIR posición absoluta
+  left: 0,                          // AÑADIR
+  right: 0,                         // AÑADIR
+  alignItems: 'center',
+},
+spacer: {                           // NUEVO ESTILO
+  width: 40,                        // Mismo ancho que backButton
+},
   gameListName: {
     fontSize: 16,
     fontWeight: 'bold',

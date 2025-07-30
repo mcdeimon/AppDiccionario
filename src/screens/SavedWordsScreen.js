@@ -18,34 +18,42 @@ export default function SavedWordsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAllLists = async () => {
-    try {
-      const lists = await getWordLists();
-      setAllLists(lists);
-      
-      // Si no hay lista seleccionada, seleccionar "General" por defecto
-      if (!selectedList && lists.length > 0) {
-        const defaultList = lists.find(list => list.id === 'default');
-        setSelectedList(defaultList || lists[0]);
-      } else if (selectedList) {
-        // Actualizar la lista seleccionada con datos frescos
-        const updatedSelectedList = lists.find(list => list.id === selectedList.id);
-        setSelectedList(updatedSelectedList || lists[0]);
-      }
-    } catch (error) {
-      console.error('Error cargando listas:', error);
-      Alert.alert('Error', 'No se pudieron cargar las listas');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  try {
+    const lists = await getWordLists();
+    setAllLists(lists);
+    
+    // Seleccionar "General" por defecto si está disponible
+    const defaultList = lists.find(list => list.id === 'default');
+    if (defaultList) {
+      setSelectedList(defaultList);
+    } else if (lists.length > 0) {
+      setSelectedList(lists[0]);
     }
-  };
+  } catch (error) {
+    console.error('Error cargando listas:', error);
+    Alert.alert('Error', 'No se pudieron cargar las listas');
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
+
 
   // Cargar datos cuando la pantalla obtiene el foco
-  useFocusEffect(
-    useCallback(() => {
-      loadAllLists();
-    }, [])
-  );
+ useFocusEffect(
+  useCallback(() => {
+    // Resetear todo el estado cuando la pantalla obtiene el foco (IGUAL QUE GAMESCREEN)
+    resetState();
+    loadAllLists();
+  }, [])
+);
+
+// NUEVA FUNCIÓN - igual que resetGame en GameScreen
+const resetState = () => {
+  setSelectedList(null);
+  setLoading(true);
+};
+
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -117,53 +125,6 @@ export default function SavedWordsScreen() {
     }
   };
 
-  const renderListSelector = () => (
-    <View style={styles.selectorContainer}>
-      <Text style={styles.selectorTitle}>Seleccionar lista:</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.selectorScroll}
-        contentContainerStyle={styles.selectorContent}
-      >
-        {allLists.map((list) => (
-          <View key={list.id} style={styles.listOptionContainer}>
-            <TouchableOpacity
-              style={[
-                styles.listOption,
-                selectedList?.id === list.id && styles.listOptionSelected
-              ]}
-              onPress={() => setSelectedList(list)}
-            >
-              <Text style={[
-                styles.listOptionText,
-                selectedList?.id === list.id && styles.listOptionTextSelected
-              ]}>
-                {list.name}
-              </Text>
-              <Text style={[
-                styles.listOptionCount,
-                selectedList?.id === list.id && styles.listOptionCountSelected
-              ]}>
-                {list.words.length} palabras
-              </Text>
-            </TouchableOpacity>
-            
-            {/* Botón eliminar lista (solo si no es la default) */}
-            {list.id !== 'default' && (
-              <TouchableOpacity
-                style={styles.deleteListButtonSmall}
-                onPress={() => confirmDeleteList(list)}
-              >
-                <Text style={styles.deleteListButtonText}>🗑️</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   const renderWordItem = (wordData, index) => {
     const addedDate = new Date(wordData.addedAt).toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -224,14 +185,59 @@ export default function SavedWordsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mis Listas</Text>
+        <Text style={styles.title}>Búsquedas Guardadas</Text>
+      
         <Text style={styles.subtitle}>
           {allLists.length} lista{allLists.length !== 1 ? 's' : ''} creada{allLists.length !== 1 ? 's' : ''}
         </Text>
+       
+        
+        {/* SELECTOR DE LISTAS DENTRO DEL HEADER */}
+        <View style={styles.selectorInHeader}>
+          {/* <Text style={styles.selectorTitle}>Seleccionar lista:</Text> */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.selectorScroll}
+            contentContainerStyle={styles.selectorContent}
+          >
+            {allLists.map((list) => (
+              <View key={list.id} style={styles.listOptionContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.listOption,
+                    selectedList?.id === list.id && styles.listOptionSelected
+                  ]}
+                  onPress={() => setSelectedList(list)}
+                >
+                  <Text style={[
+                    styles.listOptionText,
+                    selectedList?.id === list.id && styles.listOptionTextSelected
+                  ]}>
+                    {list.name}
+                  </Text>
+                  <Text style={[
+                    styles.listOptionCount,
+                    selectedList?.id === list.id && styles.listOptionCountSelected
+                  ]}>
+                    {list.words.length} palabras
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Botón eliminar lista (solo si no es la default) */}
+                {list.id !== 'default' && (
+                  <TouchableOpacity
+                    style={styles.deleteListButtonSmall}
+                    onPress={() => confirmDeleteList(list)}
+                  >
+                    <Text style={styles.deleteListButtonText}>🗑️</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       </View>
-
-      {/* SELECTOR DE LISTAS */}
-      {renderListSelector()}
 
       {/* PALABRAS DE LA LISTA SELECCIONADA */}
       <ScrollView
@@ -241,15 +247,6 @@ export default function SavedWordsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {selectedList && (
-          <View style={styles.selectedListHeader}>
-            <Text style={styles.selectedListTitle}>{selectedList.name}</Text>
-            <Text style={styles.selectedListCount}>
-              {selectedList.words.length} palabra{selectedList.words.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        )}
-
         {!selectedList || selectedList.words.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📚</Text>
@@ -288,7 +285,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 30,
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -299,14 +296,24 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     textAlign: 'center',
   },
+  
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#7f8c8d',
+    fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 5,
   },
   
+  
+  // NUEVO ESTILO PARA EL SELECTOR DENTRO DEL HEADER
+  selectorInHeader: {
+    marginTop: 25,
+    marginHorizontal: -15,
+  },
+  
   // ESTILOS DEL SELECTOR
+  /* COMENTADO - YA NO SE USA
   selectorContainer: {
     backgroundColor: '#fff',
     paddingVertical: 15,
@@ -320,11 +327,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 20,
   },
+  */
   selectorScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
   },
   selectorContent: {
-    paddingRight: 20,
+    paddingRight: 10,
   },
   listOptionContainer: {
     marginRight: 10,
@@ -371,34 +379,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  // ESTILOS DE LA LISTA SELECCIONADA
-  selectedListHeader: {
-    backgroundColor: '#f0f8ff',
-    padding: 15,
-    margin: 20,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3498db',
-  },
-  selectedListTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    textAlign: 'center',
-  },
-  selectedListCount: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-
   scrollContainer: {
     flex: 1,
   },
   wordsContainer: {
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 20,
   },
   wordItem: {
     backgroundColor: '#fff',
