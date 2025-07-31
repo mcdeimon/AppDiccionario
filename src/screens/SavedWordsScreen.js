@@ -81,7 +81,7 @@ const resetState = () => {
       const success = await removeWordFromList(selectedList.id, wordData.id);
       if (success) {
         loadAllLists(); // Recargar todas las listas
-        Alert.alert('Éxito', 'Palabra eliminada correctamente');
+       // Alert.alert('Éxito', 'Palabra eliminada correctamente');
       } else {
         Alert.alert('Error', 'No se pudo eliminar la palabra');
       }

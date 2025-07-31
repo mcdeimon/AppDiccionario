@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,17 +17,16 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchWord } from '../services/dictionaryService';
 import { addWordToList, initializeStorage } from '../services/storageService';
-import ListSelectionModal from '../components/ListSelectionModal'; // AÑADIR ESTA LÍNEA
+import ListSelectionModal from '../components/ListSelectionModal';
 
 export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [wordData, setWordData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showListModal, setShowListModal] = useState(false); // AÑADIR ESTA LÍNEA
-  
+  const [showListModal, setShowListModal] = useState(false);
+
   const insets = useSafeAreaInsets();
-  
   const bottomPadding = Math.max(insets.bottom, 20) + 80;
 
   useEffect(() => {
@@ -49,13 +48,10 @@ export default function SearchScreen() {
       Alert.alert('Error', 'Por favor escribe una palabra');
       return;
     }
-
     setLoading(true);
     setWordData(null);
-    
     try {
       const result = await searchWord(searchTerm);
-      
       if (result.success) {
         setWordData(result);
       } else {
@@ -65,96 +61,68 @@ export default function SearchScreen() {
       console.error('Error inesperado:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     }
-    
     setLoading(false);
   };
 
-  // REEMPLAZAR LA FUNCIÓN saveWord POR ESTA:
   const saveWord = async () => {
     if (!wordData) {
       Alert.alert('Error', 'Primero busca una palabra');
       return;
     }
-
     setShowListModal(true);
   };
 
-  // AÑADIR ESTA NUEVA FUNCIÓN para guardar las palabras en una lista:
-const handleSaveToList = async (selectedList) => {
-  setSaving(true);
-  
-  try {
-    // PASO 1: Siempre guardar en "General" (lista default)
-    const defaultResult = await addWordToList('default', wordData);
-    
-    // PASO 2: Si la lista seleccionada NO es la default, también guardar ahí
-    let customResult = { success: true };
-    if (selectedList.id !== 'default') {
-      customResult = await addWordToList(selectedList.id, wordData);
-    }
-    
-    // PASO 3: Mostrar mensaje según el resultado
-    if (defaultResult.success && customResult.success) {
-      if (selectedList.id === 'default') {
-        Alert.alert('Éxito', 'Palabra guardada en "General"');
-      } else {
-        Alert.alert(
-          'Éxito', 
-          `Palabra guardada en "General" y en "${selectedList.name}"`
-        );
-      }
-    } else {
-      // Si ya existe en alguna lista, mostrar mensaje apropiado
-      if (!defaultResult.success && defaultResult.message.includes('ya existe')) {
-        Alert.alert('Aviso', 'La palabra ya estaba en tu biblioteca');
-      } else {
-        Alert.alert('Error', 'No se pudo guardar la palabra');
-      }
-    }
-  } catch (error) {
-    console.error('Error guardando palabra:', error);
-    Alert.alert('Error', 'No se pudo guardar la palabra');
-  }
-  
-  setSaving(false);
-};
-
- // <-- 2. AÑADIR LA FUNCIÓN PARA COMPARTIR
- const handleShare = async () => {
-    if (!wordData) return;
-
+  const handleSaveToList = async (selectedList) => {
+    setSaving(true);
     try {
-      // 1. Empezamos con el título y la etimología si existe
+      const defaultResult = await addWordToList('default', wordData);
+      let customResult = { success: true };
+      if (selectedList.id !== 'default') {
+        customResult = await addWordToList(selectedList.id, wordData);
+      }
+      if (defaultResult.success && customResult.success) {
+        if (selectedList.id === 'default') {
+          Alert.alert('Éxito', 'Palabra guardada en "General"');
+        } else {
+          Alert.alert(
+            'Éxito',
+            `Palabra guardada en "General" y en "${selectedList.name}"`
+          );
+        }
+      } else {
+        if (!defaultResult.success && defaultResult.message.includes('ya existe')) {
+          Alert.alert('Aviso', 'La palabra ya estaba en tu biblioteca');
+        } else {
+          Alert.alert('Error', 'No se pudo guardar la palabra');
+        }
+      }
+    } catch (error) {
+      console.error('Error guardando palabra:', error);
+      Alert.alert('Error', 'No se pudo guardar la palabra');
+    }
+    setSaving(false);
+  };
+
+  const handleShare = async () => {
+    if (!wordData) return;
+    try {
       let message = `📖 *${wordData.word}*\n`;
       if (wordData.etymology) {
         message += `_${wordData.etymology}_\n`;
       }
       message += '\n';
-
-      // 2. Recorremos todas las definiciones para añadirlas al mensaje
       wordData.definitions.forEach((def, index) => {
         message += `*${index + 1}.* ${def.definition}`;
         if (def.category) {
           message += ` _(${def.category})_`;
         }
         message += '\n';
-
-        // Añadimos sinónimos si existen
         if (def.synonyms && def.synonyms.length > 0) {
           message += `*Sinónimos:* ${def.synonyms.join(', ')}\n`;
         }
-        
-        // Añadimos antónimos si existen
-        if (def.antonyms && def.antonyms.length > 0) {
-            message += `*Antónimos:* ${def.antonyms.join(', ')}\n`;
-        }
-
-        message += '\n'; // Espacio extra entre definiciones
+        message += '\n';
       });
-
-      // 3. Añadimos una pequeña firma al final
       message += '---\nCompartido desde Glosario Universal';
-
       await Share.share({
         message: message,
         title: `Definición de ${wordData.word}`
@@ -166,40 +134,29 @@ const handleSaveToList = async (selectedList) => {
 
   const renderDefinitions = () => {
     if (!wordData || !wordData.definitions || wordData.definitions.length === 0) return null;
-
     return wordData.definitions.map((defData, index) => (
       <View key={index} style={styles.definitionItem}>
         <Text style={styles.definitionNumber}>{index + 1}.</Text>
         <View style={styles.definitionContent}>
           <Text style={styles.definitionText}>{defData.definition}</Text>
-          {defData.category && (
-            <Text style={styles.categoryText}>({defData.category})</Text>
-          )}
-          {defData.usage && (
-            <Text style={styles.usageText}>Uso: {defData.usage}</Text>
-          )}
-          {defData.synonyms && defData.synonyms.length > 0 && (
-            <Text style={styles.synonymsText}>
-              Sinónimos: {defData.synonyms.join(', ')}
-            </Text>
-          )}
+          {defData.category && (<Text style={styles.categoryText}>({defData.category})</Text>)}
+          {defData.usage && (<Text style={styles.usageText}>Uso: {defData.usage}</Text>)}
+          {defData.synonyms && defData.synonyms.length > 0 && (<Text style={styles.synonymsText}>Sinónimos: {defData.synonyms.join(', ')}</Text>)}
         </View>
       </View>
     ));
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
-        style={styles.scrollContainer} 
+      <ScrollView
+        style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled" 
-        contentContainerStyle={{
-          paddingBottom: bottomPadding,
-        }}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: bottomPadding }}
       >
         <Text style={styles.title}>Glosario Universal</Text>
         <Text style={styles.subtitle}>Más que un diccionario</Text>
@@ -215,8 +172,8 @@ const handleSaveToList = async (selectedList) => {
           returnKeyType="search"
         />
         
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleSearch}
           disabled={loading}
           activeOpacity={0.8}
@@ -235,23 +192,19 @@ const handleSaveToList = async (selectedList) => {
           <View style={styles.resultContainer}>
             <View style={styles.wordHeader}>
               <Text style={styles.wordTitle}>{wordData.word}</Text>
-              <TouchableOpacity onPress={handleShare} style={styles.iconButton}>
-                <Text style={styles.icon}>📤</Text>
+              <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+                <Text style={styles.shareButtonIcon}>📤</Text>
               </TouchableOpacity>
             </View>
             
             {wordData.language && !wordData.isSpanish && (
-            <View style={styles.languageContainer}>
-                <Text style={styles.languageText}>
-                🌍 Idioma: {wordData.language}
-                </Text>
-            </View>
+              <View style={styles.languageContainer}>
+                <Text style={styles.languageText}>🌍 Idioma: {wordData.language}</Text>
+              </View>
             )}
             
             {wordData.etymology && (
-              <Text style={styles.etymology}>
-                📚 Etimología: {wordData.etymology}
-              </Text>
+              <Text style={styles.etymology}>📚 Etimología: {wordData.etymology}</Text>
             )}
             
             <View style={styles.definitionsContainer}>
@@ -259,8 +212,8 @@ const handleSaveToList = async (selectedList) => {
               {renderDefinitions()}
             </View>
             
-            <TouchableOpacity 
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={saveWord}
               disabled={saving}
               activeOpacity={0.8}
@@ -268,9 +221,7 @@ const handleSaveToList = async (selectedList) => {
               {saving ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator color="white" size="small" />
-                  <Text style={[styles.saveButtonText, { marginLeft: 10 }]}>
-                    Guardando...
-                  </Text>
+                  <Text style={[styles.saveButtonText, { marginLeft: 10 }]}>Guardando...</Text>
                 </View>
               ) : (
                 <Text style={styles.saveButtonText}>💾 Guardar palabra</Text>
@@ -280,7 +231,6 @@ const handleSaveToList = async (selectedList) => {
         )}
       </ScrollView>
 
-      {/* AÑADIR ESTE MODAL */}
       <ListSelectionModal
         visible={showListModal}
         onClose={() => setShowListModal(false)}
@@ -291,7 +241,6 @@ const handleSaveToList = async (selectedList) => {
   );
 }
 
-// Los estilos permanecen igual...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -333,10 +282,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
@@ -361,21 +307,10 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
   },
-  wordTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  // <-- 4. NUEVOS ESTILOS botón compartir
   wordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -386,18 +321,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2c3e50',
-    flex: 1, // Para que ocupe el espacio disponible y el botón se alinee a la derecha
+    flex: 1,
+    marginRight: 10,
   },
-  iconButton: {
-  paddingLeft: 15, // Añade un poco de espacio a su izquierda
-},
-icon: {
-  fontSize: 24,
-  color: '#3498db',
-  fontWeight: 'bold',
-},
-  // --- FIN DE LOS NUEVOS ESTILOS ---
-
+  shareButton: {
+    padding: 8,
+  },
+  shareButtonIcon: {
+    fontSize: 24,
+  },
   etymology: {
     fontSize: 14,
     fontStyle: 'italic',
@@ -440,13 +372,6 @@ icon: {
     borderRadius: 8,
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   saveButtonText: {
     color: 'white',
