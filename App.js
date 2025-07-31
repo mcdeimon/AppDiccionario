@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -7,6 +7,7 @@ import SearchScreen from './src/screens/SearchScreen';
 import SavedWordsScreen from './src/screens/SavedWordsScreen';
 import GameScreen from './src/screens/GameScreen'; // AÑADIR ESTA LÍNEA
 import SettingsScreen from './src/screens/SettingsScreen'; // <-- AÑADE ESTA LÍNEA
+import mobileAds from 'react-native-google-mobile-ads';
 
 const Tab = createBottomTabNavigator();
 
@@ -76,6 +77,16 @@ function AppNavigator() {
 
 // El resto del código permanece igual...
 export default function App() {
+// <-- ESTE BLOQUE DE CÓDIGO es para cargar los anuncios
+    useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(adapterStatuses => {
+        console.log('¡Inicialización de anuncios completada!');
+      });
+  }, []);
+  // <-- Fin BLOQUE DE CÓDIGO para cargar los anuncios
+
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />

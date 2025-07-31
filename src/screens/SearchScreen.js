@@ -19,6 +19,12 @@ import { searchWord } from '../services/dictionaryService';
 import { addWordToList, initializeStorage } from '../services/storageService';
 import ListSelectionModal from '../components/ListSelectionModal';
 
+// <-- 1. IMPORTS Anuncios
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+// <-- 2. DEFINIMOS EL ID DEL ANUNCIO
+const adUnitId = TestIds.BANNER;
+
 export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [wordData, setWordData] = useState(null);
@@ -231,6 +237,17 @@ export default function SearchScreen() {
         )}
       </ScrollView>
 
+      {/* <-- 3. AÑADE EL BANNER AQUÍ ABAJO */}
+      <View style={styles.adContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
+
       <ListSelectionModal
         visible={showListModal}
         onClose={() => setShowListModal(false)}
@@ -410,5 +427,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2980b9',
     textAlign: 'center',
+  },
+  // <-- 4. AÑADE ESTE ESTILO AL FINAL
+  adContainer: {
+    alignItems: 'center',
+    position: 'absolute', // Lo posiciona abajo
+    bottom: 60, // Justo encima de la barra de navegación
+    left: 0,
+    right: 0,
   },
 });
