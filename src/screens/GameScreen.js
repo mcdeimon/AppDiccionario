@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getWordLists } from '../services/storageService';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+const adUnitId = TestIds.BANNER;
 
 export default function GameScreen({ navigation }) {
   const [allLists, setAllLists] = useState([]);
@@ -24,7 +27,6 @@ export default function GameScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      // Resetear todo el estado cuando la pantalla obtiene el foco
       resetGame();
       loadAllLists();
     }, [])
@@ -43,11 +45,9 @@ export default function GameScreen({ navigation }) {
     setLoading(true);
     try {
       const lists = await getWordLists();
-      // Filtrar listas que tengan al menos 2 palabras
       const validLists = lists.filter(list => list.words && list.words.length >= 2);
       setAllLists(validLists);
       
-      // Seleccionar "General" por defecto si está disponible
       const defaultList = validLists.find(list => list.id === 'default');
       if (defaultList) {
         setSelectedList(defaultList);
@@ -80,17 +80,13 @@ export default function GameScreen({ navigation }) {
   };
 
   const generateQuestion = (wordsList) => {
-    // Seleccionar palabra correcta aleatoriamente
     const correctWord = wordsList[Math.floor(Math.random() * wordsList.length)];
-    
-    // Crear opciones incorrectas (3 definiciones de otras palabras)
     const wrongOptions = wordsList
       .filter(w => w.word !== correctWord.word)
       .sort(() => 0.5 - Math.random())
       .slice(0, 3)
       .map(w => w.definitions[0].definition);
 
-    // Mezclar todas las opciones
     const allOptions = [
       correctWord.definitions[0].definition,
       ...wrongOptions
@@ -143,41 +139,40 @@ export default function GameScreen({ navigation }) {
   };
 
   const renderListSelector = () => (
-  <View style={styles.selectorContainer}>
-    {/* <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text> */}
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      style={styles.selectorScroll}
-      contentContainerStyle={styles.selectorContent}
-    >
-      {allLists.map((list) => (
-        <View key={list.id} style={styles.listOptionContainer}>
-          <TouchableOpacity
-            style={[
-              styles.listOption,
-              selectedList?.id === list.id && styles.listOptionSelected
-            ]}
-            onPress={() => setSelectedList(list)}
-          >
-            <Text style={[
-              styles.listOptionText,
-              selectedList?.id === list.id && styles.listOptionTextSelected
-            ]}>
-              {list.name}
-            </Text>
-            <Text style={[
-              styles.listOptionCount,
-              selectedList?.id === list.id && styles.listOptionCountSelected
-            ]}>
-              {list.words.length} palabras
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-    </ScrollView>
-  </View>
-);
+    <View style={styles.selectorContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.selectorScroll}
+        contentContainerStyle={styles.selectorContent}
+      >
+        {allLists.map((list) => (
+          <View key={list.id} style={styles.listOptionContainer}>
+            <TouchableOpacity
+              style={[
+                styles.listOption,
+                selectedList?.id === list.id && styles.listOptionSelected
+              ]}
+              onPress={() => setSelectedList(list)}
+            >
+              <Text style={[
+                styles.listOptionText,
+                selectedList?.id === list.id && styles.listOptionTextSelected
+              ]}>
+                {list.name}
+              </Text>
+              <Text style={[
+                styles.listOptionCount,
+                selectedList?.id === list.id && styles.listOptionCountSelected
+              ]}>
+                {list.words.length} palabras
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -205,79 +200,93 @@ export default function GameScreen({ navigation }) {
     );
   }
 
-  // Si no se ha iniciado el juego, mostrar selector y botón de inicio
   if (!gameStarted) {
     return (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Text style={styles.title}>Quiz de Definiciones</Text>
-      <Text style={styles.subtitle}>Elige una lista y demuestra tu conocimiento</Text>
-      
-      {/* SELECTOR DE LISTAS DENTRO DEL HEADER */}
-      <View style={styles.selectorInHeader}>
-        {/* <Text style={styles.selectorTitle}>Seleccionar lista para jugar:</Text> */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.selectorScroll}
-          contentContainerStyle={styles.selectorContent}
-        >
-          {allLists.map((list) => (
-            <View key={list.id} style={styles.listOptionContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.listOption,
-                  selectedList?.id === list.id && styles.listOptionSelected
-                ]}
-                onPress={() => setSelectedList(list)}
-              >
-                <Text style={[
-                  styles.listOptionText,
-                  selectedList?.id === list.id && styles.listOptionTextSelected
-                ]}>
-                  {list.name}
-                </Text>
-                <Text style={[
-                  styles.listOptionCount,
-                  selectedList?.id === list.id && styles.listOptionCountSelected
-                ]}>
-                  {list.words.length} palabras
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
+      <View style={styles.container}>
+        <View style={styles.adContainer}>
+          <BannerAd
+            unitId={adUnitId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
+        </View>
+        <View style={styles.header}>
+          <Text style={styles.title}>Quiz de Definiciones</Text>
+          <Text style={styles.subtitle}>Elige una lista y demuestra tu conocimiento</Text>
+          
+          <View style={styles.selectorInHeader}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.selectorScroll}
+              contentContainerStyle={styles.selectorContent}
+            >
+              {allLists.map((list) => (
+                <View key={list.id} style={styles.listOptionContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.listOption,
+                      selectedList?.id === list.id && styles.listOptionSelected
+                    ]}
+                    onPress={() => setSelectedList(list)}
+                  >
+                    <Text style={[
+                      styles.listOptionText,
+                      selectedList?.id === list.id && styles.listOptionTextSelected
+                    ]}>
+                      {list.name}
+                    </Text>
+                    <Text style={[
+                      styles.listOptionCount,
+                      selectedList?.id === list.id && styles.listOptionCountSelected
+                    ]}>
+                      {list.words.length} palabras
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
 
-    {/* INFORMACIÓN Y BOTÓN DE INICIO */}
-    <View style={styles.startGameContainer}>
-      <TouchableOpacity
-        style={[
-          styles.startGameButton,
-          (!selectedList || selectedList.words.length < 2) && styles.startGameButtonDisabled
-        ]}
-        onPress={startGame}
-        disabled={!selectedList || selectedList.words.length < 2}
-      >
-        <Text style={styles.startGameButtonText}>🚀 Comenzar Juego</Text>
-      </TouchableOpacity>
-      
-      {selectedList && selectedList.words.length < 2 && (
-        <Text style={styles.warningText}>
-          Se necesitan al menos 2 palabras para jugar
-        </Text>
-      )}
-    </View>
-  </View>
-);
+        <View style={styles.startGameContainer}>
+          <TouchableOpacity
+            style={[
+              styles.startGameButton,
+              (!selectedList || selectedList.words.length < 2) && styles.startGameButtonDisabled
+            ]}
+            onPress={startGame}
+            disabled={!selectedList || selectedList.words.length < 2}
+          >
+            <Text style={styles.startGameButtonText}>🚀 Comenzar Juego</Text>
+          </TouchableOpacity>
+          
+          {selectedList && selectedList.words.length < 2 && (
+            <Text style={styles.warningText}>
+              Se necesitan al menos 2 palabras para jugar
+            </Text>
+          )}
+        </View>
+      </View>
+    );
   }
 
-  // Juego en curso
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.gameHeader}>
+    <View style={styles.container}>
+      <View style={styles.adContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
+      <ScrollView>
+        <View style={styles.header}>
+          <View style={styles.gameHeader}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => setGameStarted(false)}
@@ -290,65 +299,73 @@ export default function GameScreen({ navigation }) {
             </View>
             <View style={styles.spacer} />
           </View>
-        <View style={styles.statsContainer}>
-          <Text style={styles.score}>Puntos: {score}</Text>
+          <View style={styles.statsContainer}>
+            <Text style={styles.score}>Puntos: {score}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>
-          ¿Cuál es la definición de:
-        </Text>
-        <Text style={styles.wordText}>"{currentQuestion.word}"</Text>
-        
-        {currentQuestion.etymology && showResult && (
-          <Text style={styles.etymologyText}>
-            📚 {currentQuestion.etymology}
+        <View style={styles.questionContainer}>
+          <Text style={styles.questionText}>
+            ¿Cuál es la definición de:
           </Text>
-        )}
-      </View>
-
-      <View style={styles.optionsContainer}>
-        {currentQuestion.options.map((option, index) => (
-          <TouchableOpacity
-            key={index}
-            style={getOptionStyle(option)}
-            onPress={() => handleAnswer(option)}
-            disabled={showResult}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.optionText}>{option}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {showResult && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultText}>
-            {selectedAnswer === currentQuestion.correctAnswer ? '🎉 ¡Correcto!' : '❌ Incorrecto'}
-          </Text>
-          {selectedAnswer === currentQuestion.correctAnswer ? (
-            <Text style={styles.resultSubtext}>+10 puntos</Text>
-          ) : (
-            <Text style={styles.resultSubtext}>
-              La respuesta correcta era la opción marcada en verde
+          <Text style={styles.wordText}>"{currentQuestion.word}"</Text>
+          
+          {currentQuestion.etymology && showResult && (
+            <Text style={styles.etymologyText}>
+              📚 {currentQuestion.etymology}
             </Text>
           )}
-          
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={nextQuestion}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.nextButtonText}>➡️ Siguiente pregunta</Text>
-          </TouchableOpacity>
         </View>
-      )}
-    </ScrollView>
+
+        <View style={styles.optionsContainer}>
+          {currentQuestion.options.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={getOptionStyle(option)}
+              onPress={() => handleAnswer(option)}
+              disabled={showResult}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.optionText}>{option}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {showResult && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultText}>
+              {selectedAnswer === currentQuestion.correctAnswer ? '🎉 ¡Correcto!' : '❌ Incorrecto'}
+            </Text>
+            {selectedAnswer === currentQuestion.correctAnswer ? (
+              <Text style={styles.resultSubtext}>+10 puntos</Text>
+            ) : (
+              <Text style={styles.resultSubtext}>
+                La respuesta correcta era la opción marcada en verde
+              </Text>
+            )}
+            
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={nextQuestion}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.nextButtonText}>➡️ Siguiente pregunta</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  adContainer: {
+    alignItems: 'center',
+    paddingTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    backgroundColor: '#fff',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -362,7 +379,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 30,
+    paddingTop: 20, // Reducido de 30 a 20
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -374,6 +391,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 5,
   },
+  // ... resto de tus estilos sin cambios
   subtitle: {
     fontSize: 14,
     color: '#7f8c8d',
@@ -394,15 +412,6 @@ warningText: {
   marginTop: 10,
   fontStyle: 'italic',
 },
-  
-  // ESTILOS DEL SELECTOR
-  /* COMENTAR ESTOS ESTILOS YA NO USADOS:
-selectorContainer: {
-  backgroundColor: '#fff',
-  paddingVertical: 20,
-  paddingHorizontal: 20,
-},
-*/
   selectorTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -410,20 +419,17 @@ selectorContainer: {
     marginBottom: 15,
     textAlign: 'center',
   },
-  selectorScroll: {
-    // sin estilos adicionales necesarios
-  },
   selectorContent: {
     paddingRight: 20,
   },
  listOption: {
   backgroundColor: '#f8f9fa',
-  paddingHorizontal: 15,        // CAMBIAR DE 20 a 15
-  paddingVertical: 10,          // CAMBIAR DE 15 a 10
-  borderRadius: 20,             // MANTENER 20
+  paddingHorizontal: 15,
+  paddingVertical: 10,
+  borderRadius: 20,
   borderWidth: 2,
   borderColor: '#e9ecef',
-  minWidth: 120,                // CAMBIAR DE 140 a 120
+  minWidth: 120,
   alignItems: 'center',
 },
   listOptionSelected: {
@@ -431,7 +437,7 @@ selectorContainer: {
     borderColor: '#3498db',
   },
     listOptionText: {
-    fontSize: 14,                 // CAMBIAR DE 15 a 14
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2c3e50',
     textAlign: 'center',
@@ -440,19 +446,17 @@ selectorContainer: {
     color: 'white',
   },
     listOptionCount: {
-    fontSize: 11,                 // CAMBIAR DE 12 a 11
+    fontSize: 11,
     color: '#7f8c8d',
-    marginTop: 3,                 // CAMBIAR DE 3 a 2
+    marginTop: 3,
   },
   listOptionCountSelected: {
     color: 'rgba(255,255,255,0.8)',
   },
   listOptionContainer: {
-  marginRight: 10,    // IGUALAR a SavedWordsScreen
+  marginRight: 10,
   alignItems: 'center',
 },
-  
-  // INFO DE LISTA SELECCIONADA
   selectedListInfo: {
     backgroundColor: '#f0f8ff',
     margin: 20,
@@ -477,8 +481,6 @@ selectorContainer: {
     fontSize: 14,
     color: '#7f8c8d',
   },
-  
-  // BOTÓN DE INICIO
   startGameContainer: {
     paddingHorizontal: 20,
     paddingVertical: 30,
@@ -525,8 +527,6 @@ selectorContainer: {
     fontSize: 18,
     fontWeight: 'bold',
   },
-  
-  // HEADER DEL JUEGO EN CURSO
   gameHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -535,27 +535,27 @@ selectorContainer: {
   },
   backButton: {
   backgroundColor: '#3498db',
-  width: 40,                        // AÑADIR width fijo
-  height: 40,                       // AÑADIR height fijo
-  borderRadius: 20,                 // CAMBIAR a circular
-  alignItems: 'center',             // AÑADIR para centrar
-  justifyContent: 'center',         // AÑADIR para centrar
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
 },
 backButtonText: {
   color: 'white',
   fontSize: 28,
   fontWeight: 'bold',
   textAlign: 'center',
-  marginTop: -10,                 // AJUSTAR este valor hasta que se vea centrado
+  marginTop: -10,
 },
 gameInfo: {
-  position: 'absolute',             // AÑADIR posición absoluta
-  left: 0,                          // AÑADIR
-  right: 0,                         // AÑADIR
+  position: 'absolute',
+  left: 0,
+  right: 0,
   alignItems: 'center',
 },
-spacer: {                           // NUEVO ESTILO
-  width: 40,                        // Mismo ancho que backButton
+spacer: {
+  width: 40,
 },
   gameListName: {
     fontSize: 16,
@@ -574,8 +574,6 @@ spacer: {                           // NUEVO ESTILO
     color: '#27ae60',
     fontWeight: 'bold',
   },
-  
-  // RESTO DE ESTILOS DEL JUEGO (mantener los existentes)
   questionContainer: {
     padding: 20,
     backgroundColor: '#fff',

@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getWordLists, removeWordFromList, deleteWordList } from '../services/storageService';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+const adUnitId = TestIds.BANNER;
 
 export default function SavedWordsScreen() {
   const [allLists, setAllLists] = useState([]);
@@ -19,42 +22,36 @@ export default function SavedWordsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAllLists = async () => {
-  try {
-    const lists = await getWordLists();
-    setAllLists(lists);
-    
-    // Seleccionar "General" por defecto si está disponible
-    const defaultList = lists.find(list => list.id === 'default');
-    if (defaultList) {
-      setSelectedList(defaultList);
-    } else if (lists.length > 0) {
-      setSelectedList(lists[0]);
+    try {
+      const lists = await getWordLists();
+      setAllLists(lists);
+      
+      const defaultList = lists.find(list => list.id === 'default');
+      if (defaultList) {
+        setSelectedList(defaultList);
+      } else if (lists.length > 0) {
+        setSelectedList(lists[0]);
+      }
+    } catch (error) {
+      console.error('Error cargando listas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las listas');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  } catch (error) {
-    console.error('Error cargando listas:', error);
-    Alert.alert('Error', 'No se pudieron cargar las listas');
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-};
+  };
 
+  useFocusEffect(
+    useCallback(() => {
+      resetState();
+      loadAllLists();
+    }, [])
+  );
 
-  // Cargar datos cuando la pantalla obtiene el foco
- useFocusEffect(
-  useCallback(() => {
-    // Resetear todo el estado cuando la pantalla obtiene el foco (IGUAL QUE GAMESCREEN)
-    resetState();
-    loadAllLists();
-  }, [])
-);
-
-// NUEVA FUNCIÓN - igual que resetGame en GameScreen
-const resetState = () => {
-  setSelectedList(null);
-  setLoading(true);
-};
-
+  const resetState = () => {
+    setSelectedList(null);
+    setLoading(true);
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -80,8 +77,7 @@ const resetState = () => {
     try {
       const success = await removeWordFromList(selectedList.id, wordData.id);
       if (success) {
-        loadAllLists(); // Recargar todas las listas
-       // Alert.alert('Éxito', 'Palabra eliminada correctamente');
+        loadAllLists();
       } else {
         Alert.alert('Error', 'No se pudo eliminar la palabra');
       }
@@ -110,7 +106,6 @@ const resetState = () => {
     try {
       const result = await deleteWordList(list.id);
       if (result.success) {
-        // Si eliminamos la lista seleccionada, cambiar a "General"
         if (selectedList.id === list.id) {
           const defaultList = allLists.find(l => l.id === 'default');
           setSelectedList(defaultList);
@@ -126,10 +121,8 @@ const resetState = () => {
     }
   };
 
-  //Funcion de compartir
   const handleShare = async (wordData) => {
     if (!wordData) return;
-
     try {
       let message = `📖 *${wordData.word}*\n`;
       if (wordData.etymology) {
@@ -187,15 +180,12 @@ const resetState = () => {
             </TouchableOpacity>
           </View>
         </View>
-
         <Text style={styles.addedDate}>Agregada el {addedDate}</Text>
-
         {wordData.etymology && (
           <Text style={styles.etymology}>
             📚 {wordData.etymology}
           </Text>
         )}
-
         <View style={styles.definitionsContainer}>
           {wordData.definitions && wordData.definitions.map((def, defIndex) => (
             <View key={defIndex} style={styles.definitionItem}>
@@ -228,17 +218,21 @@ const resetState = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.adContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
       <View style={styles.header}>
         <Text style={styles.title}>Búsquedas Guardadas</Text>
-      
         <Text style={styles.subtitle}>
           {allLists.length} lista{allLists.length !== 1 ? 's' : ''} creada{allLists.length !== 1 ? 's' : ''}
         </Text>
-       
-        
-        {/* SELECTOR DE LISTAS DENTRO DEL HEADER */}
         <View style={styles.selectorInHeader}>
-          {/* <Text style={styles.selectorTitle}>Seleccionar lista:</Text> */}
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -267,8 +261,6 @@ const resetState = () => {
                     {list.words.length} palabras
                   </Text>
                 </TouchableOpacity>
-                
-                {/* Botón eliminar lista (solo si no es la default) */}
                 {list.id !== 'default' && (
                   <TouchableOpacity
                     style={styles.deleteListButtonSmall}
@@ -283,7 +275,6 @@ const resetState = () => {
         </View>
       </View>
 
-      {/* PALABRAS DE LA LISTA SELECCIONADA */}
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -317,6 +308,14 @@ const resetState = () => {
 }
 
 const styles = StyleSheet.create({
+  adContainer: {
+    alignItems: 'center',
+    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    backgroundColor: '#fff',
+  },
+  // ... resto de tus estilos sin cambios
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 30,
+    paddingTop: 20, // Reducido de 30 a 20
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -349,29 +348,10 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   
-  
-  // NUEVO ESTILO PARA EL SELECTOR DENTRO DEL HEADER
   selectorInHeader: {
     marginTop: 25,
     marginHorizontal: -5,
   },
-  
-  // ESTILOS DEL SELECTOR
-  /* COMENTADO - YA NO SE USA
-  selectorContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  selectorTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 10,
-    paddingHorizontal: 20,
-  },
-  */
   selectorScroll: {
     paddingHorizontal: 5,
   },
@@ -458,20 +438,19 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     flex: 1,
   },
-  // AÑADE ESTOS ESTILOS NUEVOS
   buttonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10, // Espacio entre el título y los botones
+    marginLeft: 10,
   },
   iconButton: {
     padding: 8,
-    marginLeft: 8, // Espacio entre los dos botones
+    marginLeft: 8,
     borderRadius: 6,
     backgroundColor: '#f8f9fa',
   },
   deleteButtonText: {
-    fontSize: 18, // Un poco más grande para que se vea bien
+    fontSize: 18,
   },
   addedDate: {
     fontSize: 12,

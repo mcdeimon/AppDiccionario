@@ -158,6 +158,18 @@ export default function SearchScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* <-- INICIO CAMBIO: BANNER MOVIDO A LA PARTE SUPERIOR --> */}
+      <View style={styles.adContainer}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
+      {/* <-- FIN CAMBIO --> */}
+      
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -237,17 +249,6 @@ export default function SearchScreen() {
         )}
       </ScrollView>
 
-      {/* <-- 3. AÑADE EL BANNER AQUÍ ABAJO */}
-      <View style={styles.adContainer}>
-        <BannerAd
-          unitId={adUnitId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-        />
-      </View>
-
       <ListSelectionModal
         visible={showListModal}
         onClose={() => setShowListModal(false)}
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     padding: 20,
-    paddingTop: 30,
+    // paddingTop: 30, // <-- CAMBIO: Eliminado para evitar doble padding
   },
   title: {
     fontSize: 28,
@@ -428,12 +429,12 @@ const styles = StyleSheet.create({
     color: '#2980b9',
     textAlign: 'center',
   },
-  // <-- 4. AÑADE ESTE ESTILO AL FINAL
-  adContainer: {
+  // <-- CAMBIO: Estilo del contenedor del banner modificado -->
+ adContainer: {
     alignItems: 'center',
-    position: 'absolute', // Lo posiciona abajo
-    bottom: 60, // Justo encima de la barra de navegación
-    left: 0,
-    right: 0,
+    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    backgroundColor: '#fff',
   },
 });
