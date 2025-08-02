@@ -24,6 +24,7 @@ import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads'
 
 // <-- 2. DEFINIMOS EL ID DEL ANUNCIO
 const adUnitId = TestIds.BANNER;
+//const adUnitId = 'ca-app-pub-4376664870286648/9663206713';
 
 export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +42,7 @@ export default function SearchScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setWordData(null);
+      //setWordData(null); //Esto limpiaba el resultado de la busqueda
       setSearchTerm('');
       setLoading(false);
       setSaving(false);

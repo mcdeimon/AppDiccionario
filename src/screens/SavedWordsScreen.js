@@ -14,6 +14,8 @@ import { getWordLists, removeWordFromList, deleteWordList } from '../services/st
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
 const adUnitId = TestIds.BANNER;
+//const adUnitId = 'ca-app-pub-4376664870286648/6930678697';
+
 
 export default function SavedWordsScreen() {
   const [allLists, setAllLists] = useState([]);

@@ -1,10 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Linking } from 'react-native';
 import { deleteAllUserData } from '../services/storageService';
 import { useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
+
+  const handlePrivacyPolicy = () => {
+    const url = 'https://sites.google.com/view/nomilia-privacidad/spanish';
+    Linking.openURL(url).catch(err => Alert.alert('Error', 'No se pudo abrir el enlace.'));
+  };
 
   const confirmDeleteAllData = () => {
     Alert.alert(
@@ -45,7 +50,7 @@ export default function SettingsScreen() {
         >
           <Text style={styles.optionIcon}>🗑️</Text>
           <View style={styles.optionTextContainer}>
-            <Text style={styles.optionTitle}>Eliminar todos los datos</Text>
+            <Text style={styles.optionTitleRed}>Eliminar todos los datos</Text>
             <Text style={styles.optionDescription}>
               Borra permanentemente todas tus listas y palabras guardadas.
             </Text>
@@ -53,7 +58,32 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
       
-      {/* Aquí podrás añadir más opciones en el futuro */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal y Contacto</Text>
+        <TouchableOpacity 
+          style={styles.optionButton}
+          onPress={handlePrivacyPolicy}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.optionIcon}>📄</Text>
+          <View style={styles.optionTextContainer}>
+            <Text style={styles.optionTitle}>Política de Privacidad</Text>
+            <Text style={styles.optionDescription}>
+              Lee cómo manejamos tus datos.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={[styles.optionButton, { marginTop: 15 }]}>
+          <Text style={styles.optionIcon}>✉️</Text>
+          <View style={styles.optionTextContainer}>
+            <Text style={styles.optionTitle}>Email de Contacto</Text>
+            <Text style={styles.optionDescription}>
+              ideapiens@ideapiens.com
+            </Text>
+          </View>
+        </View>
+      </View>
 
     </ScrollView>
   );
@@ -110,6 +140,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  optionTitleRed: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#e74c3c',

@@ -13,6 +13,7 @@ import { getWordLists } from '../services/storageService';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
 const adUnitId = TestIds.BANNER;
+//const adUnitId = 'ca-app-pub-4376664870286648/1025398284';
 
 export default function GameScreen({ navigation }) {
   const [allLists, setAllLists] = useState([]);
@@ -112,11 +113,10 @@ export default function GameScreen({ navigation }) {
     if (isCorrect) {
       setScore(score + 10);
     }
-    
-    setQuestionsAnswered(questionsAnswered + 1);
   };
 
   const nextQuestion = () => {
+    setQuestionsAnswered(questionsAnswered + 1);
     if (selectedList && selectedList.words.length > 0) {
       generateQuestion(selectedList.words);
     }
